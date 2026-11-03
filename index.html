@@ -1,0 +1,2029 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="preconnect" href="https://map-resolve.map-converter.workers.dev">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='26' height='26' rx='5' fill='%2303C75A'/%3E%3Crect x='34' y='4' width='26' height='26' rx='5' fill='%23FEE500'/%3E%3Crect x='4' y='34' width='26' height='26' rx='5' fill='%23FF0033'/%3E%3Crect x='34' y='34' width='26' height='26' rx='5' fill='%234285F4'/%3E%3C/svg%3E">
+<title>Naver Kakao Yahoo JP Google 地圖轉換</title>
+<meta name="description" content="Naver / Kakao / Yahoo JP / Google 地圖轉換：貼上任一邊連結，自動算出其他邊。座標通用 WGS84，只有 Naver 網址的 c= 是 Web Mercator (EPSG:3857) 公尺座標。">
+<style>
+  [hidden]{display:none!important} /* fix95: author display rules on .candrow override the hidden attribute, so unused rows became empty boxes; force [hidden] to win site-wide */
+/* FIX fix16: simplified page - show only the essential buttons; link texts, copy buttons, coordinate sub-buttons and examples are hidden (JS still updates them, they are just not displayed). */
+#googleLink,#googleApp,#naverLink,#naverApp,#naverAppAndroidText,#yahooLink,#kakaoLink,#uberLink,#googleCoordOpen,#naverCoordOpen,#exampleBtn{display:none!important}
+*{box-sizing:border-box}
+:root{--google:#1a73e8;--naver:#03c75a;--yahoo:#720e9e;--bg:#f6f7f9;--card:#fff;--line:#d0d5dd;--text:#101828;--muted:#475467}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;line-height:1.55}
+header{padding:22px 16px 10px;max-width:1080px;margin:0 auto}
+h1{font-size:27px;line-height:1.3;margin:0 0 8px}
+.sub{color:var(--muted);font-size:17px;margin:0}
+.sub b{color:var(--text)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px 32px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:14px}
+label{display:block;font-size:16px;color:var(--muted);margin:14px 0 6px;font-weight:600}
+input,textarea{width:100%;padding:14px;border:2px solid var(--line);border-radius:12px;font-size:18px;background:#fff;color:var(--text)}
+input:focus,textarea:focus,button:focus-visible,a:focus-visible,summary:focus-visible{outline:4px solid #fdb022;outline-offset:2px;border-color:#1a73e8}
+textarea{min-height:104px;resize:vertical}
+.row{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+button,.btn{appearance:none;border:0;border-radius:999px;padding:14px 20px;min-height:56px;font-size:18px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center}
+.btn-primary{background:#111;color:#fff}
+.btn-ghost{background:#eef2f6;color:#111;border:1px solid var(--line)}
+.btn-google{background:var(--google);color:#fff}
+.btn-naver{background:var(--naver);color:#fff}
+.btn-yahoo{background:var(--yahoo);color:#fff}
+.btn-uber{background:#000;color:#fff}
+.btn-kakaot{background:#fee500;color:#191919}
+.btn-kride{background:#111;color:#fff}
+.btn-kakao{background:#fee500;color:#191919}
+.btn-landmark{background:#344054;color:#fff}
+.panel-head.yahoo{background:var(--yahoo)}
+.panel-head.kakao{background:#fee500;color:#191919}
+.panel-head.landmark{background:#344054}
+.btn-small{padding:13px 18px;font-size:17px;min-height:54px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;position:relative}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.panel-head{padding:16px;color:#fff;font-size:20px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.panel-head.google{background:var(--google)}
+.panel-head.naver{background:var(--naver)}
+.panel-head.ride{background:#191919}
+.panel-body{padding:10px 16px 18px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all;font-size:15px;background:#f6f7f9;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.linkrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.note{font-size:15px;color:var(--muted);margin:9px 0 0}
+.step-title{font-size:21px;margin:2px 0 8px}
+.step-heading{font-size:22px;margin:22px 0 0}
+.ready{margin-top:16px;padding:16px;border-radius:14px;background:#dcfae6;border:2px solid #067647;color:#05603a;font-size:19px;font-weight:700}
+.candidate{margin:10px 0;padding:14px;border-radius:14px;background:#fff7d6;border:2px solid #b54708;color:#7a2e0e;font-size:17px;font-weight:600}
+.candidate .cand-btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.candidate .candsec{margin:12px 0 4px;font-size:16px;font-weight:800;color:#7a2e0e}
+.candidate .candrow{display:block;width:100%;margin:6px 0;padding:12px 14px;border-radius:12px;border:2px solid #b54708;background:#fffdf4;color:#7a2e0e;font-size:17px;font-weight:600;text-align:left;white-space:pre-line;cursor:pointer;min-height:54px;line-height:1.45}
+.candidate .candrow:active{background:#ffedb3}
+.ready span{display:block;margin-top:4px;font-size:17px;font-weight:600}
+.advanced{margin:4px 0 14px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#f9fafb}
+.advanced summary{font-size:16px;font-weight:700;cursor:pointer;padding:6px 0}
+.advanced input{margin-top:10px}
+.mini-help{margin-top:10px}
+.mini-help summary{font-size:16px;font-weight:700;cursor:pointer;padding:8px 0}
+.ex-btn{display:block;width:100%;text-align:left;margin-top:8px;padding:12px 14px;min-height:48px;font-size:15px;background:#fff;border:1px solid var(--line);border-radius:10px;cursor:pointer;word-break:break-all}
+details.guide{border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:16px;background:var(--card);font-size:16px}
+details.guide summary{font-weight:700;font-size:18px;cursor:pointer;padding:6px 0}
+details.guide ol,details.guide ul{font-size:16px;margin:8px 0;padding-left:24px}
+details.guide li{margin:8px 0}
+details.guide code{background:#eef2f6;padding:2px 6px;border-radius:6px;font-size:15px}
+.badge{font-size:13px;background:rgba(255,255,255,.22);padding:5px 9px;border-radius:999px}
+.vs{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;z-index:2;border:3px solid var(--bg)}
+.status{font-size:17px;margin-top:14px;min-height:28px;font-weight:600}
+.status:empty{min-height:0;margin-top:0}
+.status.ok{color:#067647}.status.err{color:#b42318;background:#fef3f2;border-radius:10px;padding:10px 12px}
+h2{font-size:18px;margin:14px 0 4px}
+ol,ul{margin:8px 0;padding-left:22px;font-size:16px}
+code{background:#eef2f6;padding:2px 6px;border-radius:6px;font-size:15px}
+@media(max-width:760px){
+  .wrap{padding:0 10px 28px}
+  .card{padding:16px 14px}
+  .grid{grid-template-columns:1fr}
+  .vs{display:none}
+  h1{font-size:24px}
+  .row button{flex:1 1 100%}
+  .linkrow .btn{flex:1 1 100%}
+  .panel-head{font-size:19px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:6px">
+    <button type="button" id="langZh" style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;min-height:44px;font-size:16px;font-weight:700;cursor:pointer">中文</button>
+    <button type="button" id="langEn" style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;min-height:44px;font-size:16px;font-weight:700;cursor:pointer">English</button>
+    <button type="button" id="langId" style="border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;min-height:44px;font-size:16px;font-weight:700;cursor:pointer">Indonesia</button>
+  </div>
+  <h1 data-i18n="docTitle">Naver Kakao Yahoo JP Google 地圖轉換</h1>
+  <p class="sub" data-i18n-html="subLine"><b>不用懂座標。</b>照著第 1、2、3 步做就可以。</p>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2 class="step-title" data-i18n="step1Title">第 1 步：把地圖連結貼在這裡</h2>
+    <textarea id="paste" data-i18n-aria="pasteAria" aria-label="貼上地圖連結" data-i18n-ph="pastePh" placeholder="在這裡貼上連結"></textarea>
+    <p class="note" data-i18n="step1Note">可以把 Google、Naver、Kakao 或 Yahoo 的整段分享文字貼上來，不用自己挑出連結。</p>
+    <details class="mini-help">
+      <summary data-i18n="helpSummary">不知道可以貼什麼？點這裡看</summary>
+      <p class="note" data-i18n="helpNote1">地圖分享連結、短連結、經緯度，或 Plus Code 都可以。Plus Code 有兩種寫法（以台北101為例）：完整碼「7QQ32HM7+CR」自己就能定位、最準確；短碼「2HM7+CR」要加上城市名，像「2HM7+CR 台北市」。沒有 Plus Code 時，直接貼地址也可以。</p>
+      <p class="note" data-i18n-html="helpNote2">各家可以貼的連結長這樣（<b>點一下範例就會自動帶入並轉換</b>）：</p>
+      <button type="button" class="ex-btn" data-ex="pluscode" data-i18n="exPlus">Plus Code（首選）：7QQ32HM7+CR（台北101）</button>
+      <button type="button" class="ex-btn" data-ex="shortcode" data-i18n="exShort">Plus Code 短碼：2HM7+CR 台北市（台北101）</button>
+      <button type="button" class="ex-btn" data-ex="google" data-i18n="exGoogle">Google：google.com/maps/place/…@37.4496,126.4524（仁川機場第1航站樓）</button>
+      <button type="button" class="ex-btn" data-ex="naver" data-i18n="exNaver">Naver：naver.me 短網址，或 map.naver.com/?lat=…&amp;lng=…（仁川機場第1航站樓）</button>
+      <button type="button" class="ex-btn" data-ex="kakao" data-i18n="exKakao">Kakao：kko.to 短網址，或 map.kakao.com/link/map/…（仁川機場第1航站樓）</button>
+      <button type="button" class="ex-btn" data-ex="yahoo" data-i18n="exYahoo">Yahoo：map.yahoo.co.jp/place/?lat=…&amp;lon=…（東京 Big Sight）</button>
+      <button type="button" class="ex-btn" data-ex="address" data-i18n="exAddress">地址：台北市信義區信義路五段7號（台北101）</button>
+      <p class="note" data-i18n="helpNote3">實際收到的分享多半是短網址（naver.me、kko.to、maps.app.goo.gl）加一段文字，整段貼上即可，不用自己挑出連結。</p>
+    </details>
+    <h2 class="step-title" style="margin-top:16px" data-i18n="step2Title">第 2 步：按大按鈕</h2>
+    <div class="row">
+      <button class="btn-primary" id="pasteBtn" type="button" data-i18n="pasteBtn">📋 貼上並開始轉換</button>
+      <button class="btn-ghost" id="parseBtn" type="button" data-i18n="parseBtn">已經貼好了，開始轉換</button>
+      <button class="btn-ghost" id="exampleBtn" type="button" data-i18n="exampleBtn">填入範例</button>
+      <button class="btn-ghost" id="clearBtn" type="button" data-i18n="clearBtn">全部清除，重新開始</button>
+      <button class="btn-ghost" id="expandBtn" type="button" style="display:none" data-i18n="expandBtn">打開短連結 →</button>
+    </div>
+    <div class="status" id="parseStatus" role="status" aria-live="polite"></div>
+    <div class="ready" id="readyBox" role="status" aria-live="polite" hidden>✅ <span data-i18n="readyLead">已經準備好了</span><span id="readyText" data-i18n="readyDefault">請往下做第 4 步，點一個地圖按鈕。</span></div>
+    <label for="name" data-i18n="nameLabel">地點名稱（不用填也可以）</label>
+    <input id="name" data-i18n-ph="namePh" placeholder="例如：飯店或景點名稱" autocomplete="off">
+  </div>
+
+  <!-- FIX fix59: landmark confirmation is its own section - shared by Naver/Kakao, searched once and confirmed once; all map buttons then use the verified landmark -->
+  <!-- FIX fix60: step numbering - landmark confirmation is Step 3, choosing a map is Step 4 -->
+  <h2 class="step-heading" data-i18n="step3Title">第 3 步：確認地標</h2>
+  <section class="panel" aria-label="確認地標" style="margin-top:14px">
+    <div class="panel-head landmark"><span data-i18n="landmarkHead">✅ 確認地標</span><span class="badge" data-i18n="landmarkBadge">Naver・Kakao 共用</span></div>
+    <div class="panel-body">
+      <p class="note" style="margin-top:2px" data-i18n="landmarkNote">座標只是大概位置（例如 Plus Code）時，在這裡找一次、確認一次就好。確認後，Naver、Kakao、Google、Yahoo 都會改用這個查證過的地標。</p>
+      <button class="btn btn-landmark" id="findBtn" type="button" style="display:none;width:100%;margin:6px 0" data-i18n="findBtn">🔍 找地標並確認</button>
+      <p class="note" id="findWaitNote" style="display:none" data-i18n="findWaitNote">⏳ 地標搜尋約需 2–5 秒，請稍等，不要重複點按。</p>
+      <a class="btn btn-google" id="plusHelpBtn" href="#" target="_blank" rel="noopener" style="display:none;width:100%;margin:6px 0;text-align:center;box-sizing:border-box" data-i18n="plusHelpBtn">🗺️ 用 Google 地圖查 Plus Code</a>
+      <p class="note" id="plusHelpHint" style="display:none" data-i18n="plusHelpHint">在 Google 地圖找到地點後，複製資訊面板裡的 Plus Code（⊕ 那一列），貼回第 1 步就會自動解碼。</p>
+      <div class="candidate" id="candidateBox" hidden>
+        <div id="candidateHead" style="white-space:pre-line">—</div>
+        <p class="candsec" id="candSecAddr" data-i18n="candSecAddr" hidden>📍 地址</p>
+        <button class="candrow" id="candRow0" type="button" hidden></button>
+        <p class="candsec" id="candSecPlaces" data-i18n="candSecPlaces" hidden>🏠 店名</p>
+        <button class="candrow" id="candRow1" type="button" hidden></button>
+        <button class="candrow" id="candRow2" type="button" hidden></button>
+        <button class="candrow" id="candRow3" type="button" hidden></button>
+        <button class="candrow" id="candRow4" type="button" hidden></button>
+        <button class="candrow" id="candRow5" type="button" hidden></button>
+        <button class="candrow" id="candRow6" type="button" hidden></button>
+        <button class="candrow" id="candRow7" type="button" hidden></button>
+        <button class="candrow" id="candRow8" type="button" hidden></button>
+        <button class="candrow" id="candRow9" type="button" hidden></button>
+        <button class="candrow" id="candRow10" type="button" hidden></button>
+        <button class="candrow" id="candRow11" type="button" hidden></button>
+        <button class="candrow" id="candRow12" type="button" hidden></button>
+        <p id="candidateFoot" style="white-space:pre-line;margin:10px 0 0" hidden></p>
+        <div class="cand-btns">
+          <button class="btn btn-ghost" id="candidateClose" type="button" data-i18n="candClose">關閉</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <h2 class="step-heading" data-i18n="step4Title">第 4 步：點一個地圖打開</h2>
+  <div class="grid">
+    <div class="vs">⇄</div>
+    <!-- LEFT: Google -->
+    <section class="panel" aria-label="Google Maps">
+      <div class="panel-head google"><span>Google Maps</span></div>
+      <div class="panel-body">
+        <details class="advanced">
+          <summary data-i18n="advGoogle">進階：查看或更改經緯度（一般不用點）</summary>
+          <input id="lat" inputmode="decimal" data-i18n-ph="latPh" placeholder="緯度" data-i18n-aria="latAria" aria-label="Google 緯度">
+          <input id="lng" inputmode="decimal" data-i18n-ph="lngPh" placeholder="經度" data-i18n-aria="lngAria" aria-label="Google 經度">
+        </details>
+        <div class="mono" id="googleLink">—</div>
+        <div class="linkrow">
+          <a class="btn btn-google btn-small" id="googleOpen" href="#" target="_blank" rel="noopener" data-i18n="gOpen">在 Google Maps 開啟</a>
+          <a class="btn btn-google btn-small" id="googleCoordOpen" href="#" target="_blank" rel="noopener" data-i18n="coordOpenG">座標圖釘開啟</a>
+          <a class="btn btn-ghost btn-small" id="googleNameFallback" href="#" target="_blank" rel="noopener" style="display:none" data-i18n="nameFallbackBtn">備援：店名搜尋</a>
+        </div>
+        <div class="mono" id="googleApp">—</div>
+        <div class="linkrow">
+          <a class="btn btn-google btn-small" id="googleAppIOS" href="#" target="_blank" rel="noopener" data-i18n="appIOS">iPhone App</a>
+          <a class="btn btn-google btn-small" id="googleAppAndroid" href="#" target="_blank" rel="noopener" data-i18n="appAndroid">Android App</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Naver -->
+    <section class="panel" aria-label="Naver Map">
+      <div class="panel-head naver"><span>Naver Map</span></div>
+      <div class="panel-body">
+        <details class="advanced">
+          <summary data-i18n="advNaver">進階：查看或更改座標（一般不用點）</summary>
+          <input id="mx" inputmode="decimal" data-i18n-ph="mxPh" placeholder="X" data-i18n-aria="mxAria" aria-label="Naver X 座標">
+          <input id="my" inputmode="decimal" data-i18n-ph="myPh" placeholder="Y" data-i18n-aria="myAria" aria-label="Naver Y 座標">
+        </details>
+        <div class="mono" id="naverLink">—</div>
+        <div class="linkrow">
+          <a class="btn btn-naver btn-small" id="naverOpen" href="#" target="_blank" rel="noopener" data-i18n="nOpen">在 Naver 開啟</a>
+          <a class="btn btn-naver btn-small" id="naverCoordOpen" href="#" target="_blank" rel="noopener" data-i18n="coordOpenN">座標開啟</a>
+          <a class="btn btn-naver btn-small" id="naverAppOpen" href="#" target="_blank" rel="noopener" data-i18n="appIOS">iPhone App</a>
+          <a class="btn btn-naver btn-small" id="naverAppAndroid" href="#" target="_blank" rel="noopener" data-i18n="appAndroid">Android App</a>
+          <a class="btn btn-ghost btn-small" id="naverNameFallback" href="#" target="_blank" rel="noopener" style="display:none" data-i18n="nameFallbackBtn">備援：店名搜尋</a>
+        </div>
+        <div class="mono" id="naverApp">—</div>
+        <div class="mono" id="naverAppAndroidText">—</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- FIX fix56: Kakao Map - the data source for candidate places. Web uses the official /link/map/ format (place ID or name,coords); the app uses the official kakaomap://look scheme -->
+  <section class="panel" aria-label="Kakao Map" style="margin-top:14px">
+    <div class="panel-head kakao"><span>Kakao Map</span><span class="badge" id="kakaoBadge" data-i18n="needCoords">需經緯度</span></div>
+    <div class="panel-body">
+      <div class="mono" id="kakaoLink">—</div>
+      <div class="linkrow">
+        <a class="btn btn-kakao btn-small" id="kakaoOpen" href="#" target="_blank" rel="noopener" data-i18n="kOpen">在 Kakao 開啟</a>
+        <a class="btn btn-kakao btn-small" id="kakaoAppOpen" href="#" target="_blank" rel="noopener" data-i18n="appIOS">iPhone App</a>
+        <a class="btn btn-kakao btn-small" id="kakaoAppAndroid" href="#" target="_blank" rel="noopener" data-i18n="appAndroid">Android App</a>
+      </div>
+      <p class="note" data-i18n="kakaoNote">韓國地圖，候選地點就是從這裡查的。已確認店家時，網頁按鈕會直接開那家店的 Kakao 頁面。</p>
+    </div>
+  </section>
+
+  <!-- FIX fix30: Yahoo! MAP (Japan) - Yahoo Maps uses WGS84 lat/lng (same as Google, no conversion); web link map.yahoo.co.jp/?lat=&lon=&z= -->
+  <section class="panel" aria-label="Yahoo! MAP" style="margin-top:14px">
+    <div class="panel-head yahoo"><span data-i18n="yahooHead">Yahoo! MAP（日本）</span><span class="badge" id="yahooBadge" data-i18n="needCoords">需經緯度</span></div>
+    <div class="panel-body">
+      <div class="mono" id="yahooLink">—</div>
+      <div class="linkrow">
+        <a class="btn btn-yahoo btn-small" id="yahooOpen" href="#" target="_blank" rel="noopener" data-i18n="yOpen">在 Yahoo! MAP 開啟</a>
+        <a class="btn btn-ghost btn-small" id="yahooNameFallback" href="#" target="_blank" rel="noopener" style="display:none" data-i18n="nameFallbackBtn">備援：店名搜尋</a>
+      </div>
+      <p class="note" data-i18n="yahooNote">日本地圖。用 /place/ 連結開啟會出現紅色圖釘（2026-10-23 瀏覽器實測；舊的置中形式沒有圖釘，已停用）。注意：從 Yahoo 手機版分享回來的連結，座標是當時的「地圖中心」而非圖釘，可能差幾十公尺（實測約 82 公尺）；韓國地點貼入後，請用第 3 步「確認地標」校正。</p>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head ride"><span data-i18n="rideHead">叫車（Uber · Kakao T · k.ride）</span><span class="badge" id="rideBadge" data-i18n="needCoords">需經緯度</span></div>
+    <div class="panel-body">
+      <div class="mono" id="uberLink">—</div>
+      <div class="linkrow">
+        <span class="note">Uber</span>
+        <a class="btn btn-uber btn-small" id="uberOpen" href="#" rel="noopener" data-i18n="uberOpenBtn">🚕 用 Uber 叫車到這裡</a>
+      </div>
+      <p class="note" data-i18n="uberNote">開啟 Uber 並把這個地點設為下車目的地，上車點用你的目前位置。Android 要先點「設定上車點」，目的地才會顯示。</p>
+      <div class="mono" id="rideDest">—</div>
+      <div class="linkrow">
+        <span class="note">Kakao T</span>
+        <a class="btn btn-kakaot btn-small" id="kakaoTIOS" href="https://apps.apple.com/app/id981110422" target="_blank" rel="noopener" data-i18n="appIOS">iPhone App</a>
+        <a class="btn btn-kakaot btn-small" id="kakaoTAndroid" href="intent://t.kakao.com/#Intent;scheme=https;package=com.kakao.taxi;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.kakao.taxi;end" target="_blank" rel="noopener" data-i18n="appAndroid">Android App</a>
+      </div>
+      <div class="linkrow">
+        <span class="note">k.ride</span>
+        <a class="btn btn-kride btn-small" id="krideIOS" href="https://kride.kakaomobility.com/link" target="_blank" rel="noopener" data-i18n="appIOS">iPhone App</a>
+        <a class="btn btn-kride btn-small" id="krideAndroid" href="intent://kride.kakaomobility.com/link#Intent;scheme=https;package=com.kakaomobility.kride;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.kakaomobility.kride;end" target="_blank" rel="noopener" data-i18n="appAndroid">Android App</a>
+      </div>
+      <p class="note" id="rideCopyStatus"></p>
+      <p class="note" data-i18n="rideNote">Kakao T 與 k.ride 沒有公開「預填目的地」的連結：按它們的按鈕會先把上方韓文目的地複製好再開啟 App，到 App 的目的地欄貼上搜尋即可。Kakao T 的 iPhone 按鈕會先到 App Store 頁面（已安裝會顯示「開啟」）。</p>
+    </div>
+  </section>
+  <p class="note" id="quotaLine" style="text-align:center" hidden></p>
+  <p class="note" style="text-align:center">v2026-11-03-fix110</p>
+</div>
+
+<script>
+const R = 20037508.34;
+const $ = id => document.getElementById(id);
+const els = {paste:$('paste'),name:$('name'),lat:$('lat'),lng:$('lng'),mx:$('mx'),my:$('my'),
+  googleLink:$('googleLink'),googleApp:$('googleApp'),googleOpen:$('googleOpen'),googleCoordOpen:$('googleCoordOpen'),
+  googleAppIOS:$('googleAppIOS'),googleAppAndroid:$('googleAppAndroid'),googleNameFallback:$('googleNameFallback'),
+  naverLink:$('naverLink'),naverApp:$('naverApp'),naverOpen:$('naverOpen'),naverCoordOpen:$('naverCoordOpen'),naverAppOpen:$('naverAppOpen'),
+  findBtn:$('findBtn'),candidateBox:$('candidateBox'),candidateHead:$('candidateHead'),
+  candSecAddr:$('candSecAddr'),candSecPlaces:$('candSecPlaces'),candidateClose:$('candidateClose'),candidateFoot:$('candidateFoot'),
+  candRows:Array.from({length:13},(_,i)=>$('candRow'+i)),
+  naverAppAndroid:$('naverAppAndroid'),naverAppAndroidText:$('naverAppAndroidText'),naverNameFallback:$('naverNameFallback'),
+  yahooLink:$('yahooLink'),yahooOpen:$('yahooOpen'),yahooNameFallback:$('yahooNameFallback'),
+  kakaoLink:$('kakaoLink'),kakaoOpen:$('kakaoOpen'),kakaoAppOpen:$('kakaoAppOpen'),kakaoAppAndroid:$('kakaoAppAndroid'),kakaoBadge:$('kakaoBadge'),yahooBadge:$('yahooBadge'),uberLink:$('uberLink'),uberOpen:$('uberOpen'),rideBadge:$('rideBadge'),rideDest:$('rideDest'),rideCopyStatus:$('rideCopyStatus'),status:$('parseStatus'),
+  readyBox:$('readyBox'),readyText:$('readyText')};
+let syncing = false;
+let currentPinId = '';
+// FIX fix17: Google's ID is the ftid (the ftid=0x... parameter in Google place-page / ?q= redirect links), the counterpart of Naver's pinId.
+// When ID lookup fails, neither main button falls back to a name search; both show "ID not found". Name search is demoted to an explicitly labelled fallback button.
+let currentGoogleId = '';
+// FIX fix57: Kakao place ID (place.map.kakao.com/{id} or map.kakao.com/link/map/{id}), the counterpart of pinId/ftid, so a Kakao link can also serve as input.
+let currentKakaoId = '';
+// FIX fix40: Naver's official local search API returns only candidate names/addresses/coordinates - no place ID.
+// Flow: query by Korean place name -> sort by distance -> user confirms with one tap -> the Naver button switches to that candidate's coordinates in Naver's data.
+let naverCandidates = [];
+let naverOverride = null;
+let autoFindArmed = false; let autoFindKey = ''; // fix92: auto-start arming flag and de-dup key for Step 3 once parsing completes
+let inputWasYahoo = false;
+let nameAutoTimer = null; // fix93: debounce timer for name-input auto search. fix92: Yahoo-input flag - when the auto search changes state, re-append the deviation note (the fix68 note must not be erased). Followed by the confirmed-candidate state {title,address,lat,lng,distanceM}.
+let candidateSource = 'name';
+let candWidened = false;
+let findBtnMode = 'primary'; // fix97: 'primary' = big button (not searched yet / retry after failure) | 'retry' = small button (list open, re-search only). fix95: flag for widening to 100 m when no place is within 30 m (the list header must say so). fix47: candidate mode 'name' (Korean name query) or 'address' (no name -> reverse-geocode the coordinates)
+const LOCAL_WORKER = 'https://map-resolve.map-converter.workers.dev/local';
+const NEARBY_WORKER = 'https://map-resolve.map-converter.workers.dev/nearby';
+const TT_SEARCH_WORKER = 'https://map-resolve.map-converter.workers.dev/tt-search';
+const TT_NEARBY_WORKER = 'https://map-resolve.map-converter.workers.dev/tt-nearby';
+// FIX fix102 (user-specified: build for the countries where TomTom is strong; measured basis 2026-10-26): coordinates -> Step 3 verification-source routing.
+// kr = Kakao (strongest local data in Korea); tt = TomTom-strong regions (Taiwan/Singapore/Europe/North America/Oceania - measured hits with accurate coordinates);
+// jp = Japan (TomTom measured weak, no local source yet); other = no source yet. The overlap band with Tsushima at Korea's eastern edge is split at latitude 34.85 (Tsushima goes to jp).
+function regionOf(lat, lng){
+  if(lat >= 33.0 && lat <= 43.0 && lng >= 124.0 && lng <= 132.0 && !(lng >= 129.0 && lat < 34.85)) return 'kr';
+  if(lat >= 21.8 && lat <= 26.6 && lng >= 118.1 && lng <= 122.1) return 'tt'; // Taiwan (incl. Kinmen/Matsu/Penghu)
+  if(lat >= 1.22 && lat <= 1.48 && lng >= 103.6 && lng <= 104.05) return 'tt'; // Singapore
+  if(lat >= 34.5 && lat <= 71.5 && lng >= -25.0 && lng <= 45.0) return 'tt'; // Europe
+  if(lat >= 14.0 && lat <= 72.0 && lng >= -170.0 && lng <= -52.0) return 'tt'; // North America
+  if(lat >= -48.0 && lat <= 0.5 && lng >= 110.0 && lng <= 180.0) return 'tt'; // Oceania
+  if(lat >= 24.0 && lat <= 46.0 && lng >= 122.0 && lng <= 146.0) return 'jp';
+  return 'other';
+}
+// FIX fix13: the place name is not primary - coordinates/ID take priority, but only coordinates that belong to THIS place may take priority.
+// When coordinates and the name are parsed from the same link, coordsValidForName=true and the coordinates win;
+// when the user edits the name by hand, the old coordinates no longer necessarily belong to this place: coordsValidForName=false and name search wins (avoids opening stale Nampo-dong coordinates).
+let coordsValidForName = false;
+// FIX fix36: senior-mode completion hint - show the green "ready" message only when coordinates, an ID, or a usable name were actually found, so the user never has to guess the next step.
+let hasReadyResult = false;
+let readySpec = null;
+
+// FIX fix72: Chinese/English UI language switch - STR bilingual dictionary; static text uses data-i18n (with -html/-ph/-aria variants);
+// all dynamic JS text goes through T(); the "ready" message is stored as a spec {k,v} so it can be re-rendered on a language switch. The choice is kept in localStorage; ?lang=en|zh takes precedence.
+const STR = {
+zh: {
+  docTitle: 'Naver Kakao Yahoo JP Google 地圖轉換',
+  subLine: '<b>不用懂座標。</b>照著第 1、2、3 步做就可以。',
+  step1Title: '第 1 步：把地圖連結貼在這裡',
+  pastePh: '在這裡貼上連結', pasteAria: '貼上地圖連結',
+  step1Note: '可以把 Google、Naver、Kakao 或 Yahoo 的整段分享文字貼上來，不用自己挑出連結。',
+  helpSummary: '不知道可以貼什麼？點這裡看',
+  helpNote1: '地圖分享連結、短連結、經緯度，或 Plus Code 都可以。Plus Code 有兩種寫法（以台北101為例）：完整碼「7QQ32HM7+CR」自己就能定位、最準確；短碼「2HM7+CR」要加上城市名，像「2HM7+CR 台北市」。沒有 Plus Code 時，直接貼地址也可以。',
+  helpNote2: '各家可以貼的連結長這樣（<b>點一下範例就會自動帶入並轉換</b>）：',
+  exGoogle: 'Google：google.com/maps/place/…@37.4496,126.4524（仁川機場第1航站樓）',
+  exNaver: 'Naver：naver.me 短網址，或 map.naver.com/?lat=…&lng=…（仁川機場第1航站樓）',
+  exKakao: 'Kakao：kko.to 短網址，或 map.kakao.com/link/map/…（仁川機場第1航站樓）',
+  exYahoo: 'Yahoo：map.yahoo.co.jp/place/?lat=…&lon=…（東京 Big Sight）',
+  exPlus: 'Plus Code（首選）：7QQ32HM7+CR（台北101）',
+  exShort: 'Plus Code 短碼：2HM7+CR 台北市（台北101）',
+  exAddress: '地址：台北市信義區信義路五段7號（台北101）',
+  helpNote3: '實際收到的分享多半是短網址（naver.me、kko.to、maps.app.goo.gl）加一段文字，整段貼上即可，不用自己挑出連結。',
+  step2Title: '第 2 步：按大按鈕',
+  pasteBtn: '📋 貼上並開始轉換', parseBtn: '已經貼好了，開始轉換', exampleBtn: '填入範例',
+  clearBtn: '全部清除，重新開始', expandBtn: '打開短連結 →',
+  readyLead: '已經準備好了', readyDefault: '請往下做第 4 步，點一個地圖按鈕。',
+  nameLabel: '地點名稱（不用填也可以）', namePh: '例如：飯店或景點名稱',
+  step3Title: '第 3 步：確認地標', landmarkHead: '✅ 確認地標', landmarkBadge: 'Naver・Kakao 共用',
+  landmarkNote: '座標只是大概位置（例如 Plus Code）時，在這裡找一次、確認一次就好。確認後，Naver、Kakao、Google、Yahoo 都會改用這個查證過的地標。',
+  findBtn: '🔍 找地標並確認', findBtnRetry: '🔄 重新搜尋', findWaitNote: '⏳ 地標搜尋約需 2–5 秒，請稍等，不要重複點按。', candClose: '關閉', candListHead: '找到 {n} 個候選，點一個就是確認——所有地圖按鈕會改用你點的那個地點：', candSecAddr: '📍 地址', candSecPlaces: '🏠 店名', candCat: '分類：{cat}',
+  step4Title: '第 4 步：點一個地圖打開',
+  advGoogle: '進階：查看或更改經緯度（一般不用點）', advNaver: '進階：查看或更改座標（一般不用點）',
+  latPh: '緯度', lngPh: '經度', latAria: 'Google 緯度', lngAria: 'Google 經度', mxPh: 'X', myPh: 'Y', mxAria: 'Naver X 座標', myAria: 'Naver Y 座標',
+  gOpen: '在 Google Maps 開啟', gOpenPin: '在 Google Maps 開啟 (座標圖釘)', gOpenId: '在 Google Maps 開啟 (地點 ID)',
+  nOpen: '在 Naver 開啟', nOpenCoord: '在 Naver 開啟 (座標)', nOpenConfirmed: '在 Naver 開啟 (已確認地點)', nOpenId: '在 Naver 開啟 (地點 ID)',
+  coordOpenG: '座標圖釘開啟', coordOpenN: '座標開啟',
+  nameFallbackBtn: '備援：店名搜尋',
+  appIOS: 'iPhone App', appAndroid: 'Android App',
+  appIOSPin: 'iPhone App（座標圖釘）', appAndroidPin: 'Android App（座標圖釘）',
+  appIOSId: 'iPhone App（地點 ID）', appAndroidId: 'Android App（地點 ID）',
+  appIOSNameFb: 'iPhone App（店名搜尋備援）', appAndroidNameFb: 'Android App（店名搜尋備援）',
+  appIOSMiss: 'iPhone App（ID 未找到）', appAndroidMiss: 'Android App（ID 未找到）',
+  kOpen: '在 Kakao 開啟', kOpenConfirmed: '在 Kakao 開啟 (已確認地點)', kOpenCoord: '在 Kakao 開啟（座標）',
+  kAppPinIOS: 'iPhone App (座標標記)', kAppPinAndroid: 'Android App (座標標記)',
+  yOpen: '在 Yahoo! MAP 開啟', yOpenCoord: '在 Yahoo! MAP 開啟 (座標)', yahooHead: 'Yahoo! MAP（日本）', rideHead: '叫車（Uber · Kakao T · k.ride）', rideCopied: '✅ 已複製目的地，打開 App 後在目的地欄貼上搜尋', rideNoDest: '目前沒有韓文目的地可複製：先在第 3 步確認地標，或貼上含韓文店名的連結', rideCopyFail: '自動複製失敗，請長按上方目的地文字手動複製', rideNote: 'Kakao T 與 k.ride 沒有公開「預填目的地」的連結：按它們的按鈕會先把上方韓文目的地複製好再開啟 App，到 App 的目的地欄貼上搜尋即可。Kakao T 的 iPhone 按鈕會先到 App Store 頁面（已安裝會顯示「開啟」）。', uberOpenBtn: '🚕 用 Uber 叫車到這裡', uberNote: '開啟 Uber 並把這個地點設為下車目的地，上車點用你的目前位置。Android 要先點「設定上車點」，目的地才會顯示。',
+  needCoords: '需經緯度', coordOk: '座標 OK', badgeConfirmed: '已確認地點', badgeId: '地點 ID',
+  idNotFound: 'ID 未找到',
+  kakaoNote: '韓國地圖，候選地點就是從這裡查的。已確認店家時，網頁按鈕會直接開那家店的 Kakao 頁面。',
+  yahooNote: '日本地圖。用 /place/ 連結開啟會出現紅色圖釘（2026-10-23 瀏覽器實測；舊的置中形式沒有圖釘，已停用）。注意：從 Yahoo 手機版分享回來的連結，座標是當時的「地圖中心」而非圖釘，可能差幾十公尺（實測約 82 公尺）；韓國地點貼入後，請用第 3 步「確認地標」校正。',
+  ftidLine: 'ID (ftid)：{u}', coordPinLine: '座標圖釘：{u}',
+  monoCoordIOS: '座標圖釘 iPhone：{u}', monoCoordAndroid: '座標圖釘 Android：{u}',
+  monoNameIOS: '店名搜尋 iPhone：{u}', monoNameAndroid: '店名搜尋 Android：{u}',
+  monoNameSearch: '店名搜尋：{u}',
+  naverConfirmedLine: '✅ 已確認 Naver 地點：{title}（與原座標相距約 {d} 公尺）',
+  monoNameAddrSearch: '店名/地址搜尋：{u}', monoCoord: '座標：{u}',
+  monoPlaceId: '地點連結（place ID，不受語言影響）：{u}',
+  monoNoNameHint: '（無店名/地址時，請用上面座標連結或 App 圖釘連結）',
+  readyNamed: '地點：{name}。請往下做第 4 步，點一個地圖按鈕。',
+  readyFound: '位置已經找到。請往下做第 4 步，點一個地圖按鈕。',
+  readyNameFallback: '已找到名稱：{name}。請往下點有「店名搜尋備援」或「App」的按鈕。',
+  readyNameGoogle: '地點：{name}。請往下做第 4 步，點 Google 地圖按鈕。',
+  readyIdOnly: '已取得地點 ID。請往下做第 4 步，點地圖按鈕。',
+  readyPlusApprox: '{notice}請往下做第 4 步，點一個地圖按鈕看大概位置。',
+  readyMismatch: '⚠ 兩個位置不完全一樣。{detail}這次以連結的精確座標為準，請往下做第 4 步，點地圖按鈕。',
+  plusNotice: '這是大概位置：{code} 代表約 {w}×{h} 公尺的範圍，圖釘放在正中間，和真正的店家最多可能差約 {m} 公尺。要精準找店，請改貼店家的分享連結。',
+  dirEast: '東', dirWest: '西', dirNorth: '北', dirSouth: '南',
+  mismatchDetail: '同時貼上的 Plus Code {code}（還原為 {full}）與連結座標不一致：連結點在 Plus Code 格子{dir}側外約 {out} 公尺，格子中心與連結點相差約 {dist} 公尺，已超過這個碼最多約 {max} 公尺的中心誤差。',
+  mismatchStatus: '⚠ {detail}這次以連結的精確座標為準；Plus Code 可能是附近另一點或另一家地圖的圖釘。',
+  pinNote: '（ID {id}）', nonKoreanNote: '（非韓文名，已轉 ID）',
+  yahooShareNote: '（提醒：Yahoo 手機版分享的座標是地圖中心、不是圖釘，可能偏幾十公尺；韓國地點可用第 3 步「確認地標」校正。）',
+  stParsed: '已解析：{rest}',
+  stKakaoCoord: '已解析 Kakao 連結座標。', stKakaoApp: '已解析 Kakao App 連結座標。',
+  stNaverC: '已解析 Naver c= → 換算為 Google 經緯度。',
+  stGoogleData: '已解析 Google !3d緯度 !4d經度。', stGoogleAt: '已解析 Google @緯度,經度。', stGoogleQ: '已解析 Google ?q=緯度,經度。',
+  stLatLng: '已解析 緯度,經度。', stXY: '已解析 X,Y（公尺）→ 換算為經緯度。',
+  stBadNums: '這組數字超出經緯度範圍，也不像 Naver 的 X/Y 座標。請確認貼的是經緯度或完整連結。',
+  stNameIdOk: '已解析：{name}（Google ID 已取出）',
+  stNameNoId: '已取出店名「{name}」：Google ID 未找到，請用備援店名搜尋。',
+  stSearchName: '已取出搜尋名稱，請再確認。',
+  stShortCode: '已解析短碼 Plus Code「{code}」（參考：{ref}，還原為 {full}）。注意：這是大概位置，不是店門口。',
+  pageCoordRef: '頁面座標',
+  approxTail: '注意：這是大概位置，不是店門口。',
+  stNeedCity: '還差一個城市名。請在短碼後面加上城市名，例如「5RJG+F6 金海市」或「V6X6+RC 桃園市」，再按一次開始轉換。',
+  stPlaceNameOnly: '已取出店名「{name}」：此連結沒有座標 / Plus Code。',
+  stPlusSrcName: '已解析 Google 地點頁：取出店名「{name}」+ Plus Code {code}。',
+  stPlusSrc: '已解析 Plus Code {code}。',
+  stIdOnlyBase: '已解析：只有地點 ID，沒有座標。',
+  stIdNaver: ' Naver ID {id}。', stIdGoogle: ' Google ID 已取出。', stIdKakao: ' Kakao ID {id}。',
+  stIdGuide: '若要讓 Google、Kakao 也能開啟，請在名稱欄輸入這家店的韓文原名——輸入後會自動開始找地標。',
+  stNamePlain: '已取出店名「{name}」：沒有座標，請用備援店名搜尋，或改貼店家的分享連結。',
+  stUnknown: '看不懂這段內容。請確認貼的是地圖的分享連結，或改貼經緯度、Plus Code。',
+  stEmpty: '還沒有貼上內容。請先點白色大框框，把連結貼進去。',
+  stWorking: '正在處理，請稍等一下…',
+  stAutoFail: '自動處理沒有成功。請點「打開短連結」，等新頁面打開後，再把最上面的完整連結複製回來貼上。',
+  stNameFoundSuffix: '已先找到名稱「{name}」。',
+  stKakaoUpgraded: '已從 Kakao 取得「{name}」的座標，Google、Naver、Kakao 都可以開啟了。',
+  landmarkWord: '地標',
+  stExample: '已填入範例：南浦站 남포역 35.097883,129.034663',
+  stPasteHelp: '請長按上方白色大框框，看到「貼上」後點一下；貼好後網頁會自動開始轉換。',
+  copied: '已複製 ✓', copyLink: '複製連結', copyAppLink: '複製 App 連結',
+  stNoCoordNoName: '還沒有座標，也沒有韓文店名，沒辦法找地標。請貼上帶座標的連結，或在名稱欄輸入韓文原名再找地標。',
+  stSearching: '正在查詢附近地點，請稍等…',
+  stNotConfigured: '附近地點搜尋還沒設定完成：請先在 Cloudflare 的 map-resolve 加上 KAKAO_REST_KEY 這個 Secret。',
+  stNoAddress: '這個座標查不到韓國地址（這個功能只支援韓國境內）。要精準找店，請改貼店家的分享連結。',
+  stNoSource: '這個地區目前沒有地標查證資料（韓國用 Kakao 查證；台灣、歐洲、北美、大洋洲、新加坡用 TomTom 查證）。要精準找店，請改貼店家的分享連結。',
+  stNoAddrIntl: '這個座標查不到地址資料。要精準找店，請改貼店家的分享連結。',
+  stCandAddrIntl: '已用座標查到地址與附近地點，請在「確認地標」區的清單點一個確認。',
+  plusHelpBtn: '🗺️ 用 Google 地圖查 Plus Code',
+  plusHelpHint: '在 Google 地圖找到地點後，複製資訊面板裡的 Plus Code（⊕ 那一列），貼回第 1 步就會自動解碼。',
+  stNotConfTt: '國際地標搜尋還沒設定完成：請先在 Cloudflare 的 map-resolve 加上 TOMTOM_API_KEY 這個 Secret。',
+  stNoCandNameIntl: '找不到「{name}」的候選地點，請換個寫法再試。',
+  stFindFailName: '附近地點搜尋失敗，請稍後再試。',
+  stFindFailAddr: '找附近地點需要韓文店名（資料來源 Kakao 只能用韓文查）。請先把店名改成韓文原名再試。',
+  stNoCandName: '找不到「{name}」的候選地點，請確認是韓文原名，或換個寫法再試。',
+  stNoCandAddr: '這個座標附近查不到地點資料。',
+  stCandFoundNameCoord: '找到 {n} 家候選，已選出最近的一家，請在「確認地標」區確認。',
+  stCandFoundNameNoCoord: '找到 {n} 家候選，請在「確認地標」區確認是哪一家；確認後 Google、Naver、Kakao 都能開啟。',
+  stCandFoundAddr: '已用座標查到韓國地址與附近地點，請在「確認地標」區的清單點一個確認。',
+  candListFoot: '找不到你要找的地點？可以點最上面的地址那一列——那是這個位置查證過的門牌地址，所有地圖會開在那個地址。',
+  candNearbyRule: '（店名只列 30 公尺內、最多 5 家）', candWidened: '（30 公尺內沒有店家，已放寬到 100 公尺內最近的幾家；距離標在每一列上，請挑最近的）',
+  stOffline: '連不上附近地點搜尋服務，請檢查網路後再試。',
+  stConfirmed: '已確認地點：{title}。所有地圖按鈕已改用查證過的座標（與原座標相距約 {d} 公尺）。',
+  candRefLine: '你原本查的是：{name}',
+  candDistCoord: '與目前座標相距約 {d} 公尺。',
+  candDistNone: '（目前沒有出發座標，確認後就會補上這家的座標。）',
+  candFar: '⚠ 距離超過 200 公尺，可能不是同一家，請仔細確認。',
+
+  candEnGtx: '英文參考（Google 機翻，非官方名）：{t}',
+  candEnMm: '英文參考（MyMemory 機翻，非官方名）：{t}',
+  guideSummary: '📍 Google Maps Plus Code 使用說明（點開看教學）',
+  guideWhatH: '什麼是 Plus Code？',
+  guideWhatP: 'Plus Code 是 Google 的地點編碼，用一串字元代表經緯度。完整碼像 <code>8Q7C5RJG+F63</code>（<code>+</code> 前面 8 字），短碼像 <code>5RJG+F6</code>（<code>+</code> 前面只有 4 字，需搭配城市名）。',
+  guideHowH: '怎麼從 Google Maps App 複製 Plus Code？',
+  guideHow1: '在 Google Maps App 點<strong>地點名稱</strong>，打開地點卡片（不要長按地圖空地，那會拿到別的位置的碼）。',
+  guideHow2: '往下滑到「關於」區，找到 <strong>Plus Code</strong> 那一行（例如 <code>5RJG+F6 金海市 南韓慶尚南道</code>）。',
+  guideHow3: '點那行複製，或手動記下短碼 + 城市名。',
+  guidePasteH: '怎麼貼到轉換頁？',
+  guidePaste1: '<strong>完整碼</strong>：直接貼 <code>8Q7C5RJG+F63</code> 就好，不用加城市名。',
+  guidePaste2: '<strong>短碼</strong>：一定要加上城市名，例如貼 <code>5RJG+F6 金海市</code>。只貼短碼 <code>5RJG+F6</code> 會提示需要參考位置，不會產生座標。',
+  guidePaste3: '貼上後網頁會自動開始轉換；如果沒有自動開始，請按「已經貼好了，開始轉換」。成功後往下點一個地圖按鈕即可。',
+  guideNoteH: '注意事項',
+  guideNote1: 'App 顯示的都是<strong>短碼</strong>，務必連城市名一起貼。',
+  guideNote2: '短碼的格子字不同就是不同位置：<code>F6</code> 是飯店、<code>FVG</code> 是旁邊公園，相差約 150 公尺。請確認是從地點卡片複製的碼，不是長按空地拿到的碼。',
+  guideNote3: 'Plus Code 代表一塊範圍，不是精確圖釘；轉換頁放的是範圍中心。<code>+</code> 後面 2 字、還原後共 10 字的碼，範圍約 14 公尺見方，中心和店家最多可能差約 10 公尺；<code>+</code> 後面 3 字、還原後共 11 字的碼，範圍約 3 公尺見方，落差才約 2 公尺。要精準找店，請改貼店家的分享連結，或到現場再以店名、招牌確認。',
+  quotaLine: '查詢額度剩餘 — 今日 Kakao {d}%（每日上限以用量最高一類計，韓國時間）'
+},
+en: {
+  docTitle: 'Naver · Kakao · Yahoo JP · Google Map Converter',
+  subLine: '<b>No need to understand coordinates.</b> Just follow the steps below.',
+  step1Title: 'Step 1: Paste the map link here',
+  pastePh: 'Paste the link here', pasteAria: 'Paste a map link',
+  step1Note: 'You can paste the whole share text from Google, Naver, Kakao or Yahoo — no need to pick out the link yourself.',
+  helpSummary: 'Not sure what to paste? Tap here',
+  helpNote1: 'A map share link, a short link, latitude/longitude, or a Plus Code all work. Plus Codes come in two forms (Taipei 101 as an example): a full code like “7QQ32HM7+CR” locates the place by itself and is the most accurate; a short code like “2HM7+CR” needs the city name added, e.g. “2HM7+CR Taipei”. If you don’t have a Plus Code, pasting the plain address works too.',
+  helpNote2: 'Links you can paste look like this (<b>tap an example to fill it in and convert</b>):',
+  exGoogle: 'Google: google.com/maps/place/…@37.4496,126.4524 (Incheon Airport Terminal 1)',
+  exNaver: 'Naver: a naver.me short link, or map.naver.com/?lat=…&lng=… (Incheon Airport Terminal 1)',
+  exKakao: 'Kakao: a kko.to short link, or map.kakao.com/link/map/… (Incheon Airport Terminal 1)',
+  exYahoo: 'Yahoo: map.yahoo.co.jp/place/?lat=…&lon=… (Tokyo Big Sight)',
+  exPlus: 'Plus Code (best choice): 7QQ32HM7+CR (Taipei 101)',
+  exShort: 'Plus Code (short): 2HM7+CR Taipei (Taipei 101)',
+  exAddress: 'Address: No. 7, Sec. 5, Xinyi Rd., Xinyi Dist., Taipei (Taipei 101)',
+  helpNote3: 'Shares you receive are usually a short link (naver.me, kko.to, maps.app.goo.gl) plus some text — just paste the whole thing.',
+  step2Title: 'Step 2: Press the big button',
+  pasteBtn: '📋 Paste & Convert', parseBtn: 'Already pasted — Convert', exampleBtn: 'Fill in an example',
+  clearBtn: 'Clear all & start over', expandBtn: 'Open short link →',
+  readyLead: 'All set', readyDefault: 'Go to Step 4 below and tap a map button.',
+  nameLabel: 'Place name (optional)', namePh: 'e.g. a hotel or attraction name',
+  step3Title: 'Step 3: Confirm the landmark', landmarkHead: '✅ Confirm landmark', landmarkBadge: 'Shared by Naver · Kakao',
+  landmarkNote: 'When the coordinates are only approximate (e.g. from a Plus Code), find and confirm the place here once. After that, Naver, Kakao, Google and Yahoo will all use the verified landmark.',
+  findBtn: '🔍 Find & confirm landmark', findBtnRetry: '🔄 Search again', findWaitNote: '⏳ The landmark search takes about 2–5 seconds. Please wait — do not tap again.', candClose: 'Close', candListHead: 'Found {n} candidates — tap one to confirm it; all map buttons will use the place you tap:', candSecAddr: '📍 Address', candSecPlaces: '🏠 Places', candCat: 'Category: {cat}',
+  step4Title: 'Step 4: Tap a map to open it',
+  advGoogle: 'Advanced: view or edit latitude/longitude (usually not needed)', advNaver: 'Advanced: view or edit X/Y (usually not needed)',
+  latPh: 'Latitude', lngPh: 'Longitude', latAria: 'Google latitude', lngAria: 'Google longitude', mxPh: 'X', myPh: 'Y', mxAria: 'Naver X coordinate', myAria: 'Naver Y coordinate',
+  gOpen: 'Open in Google Maps', gOpenPin: 'Open in Google Maps (coordinate pin)', gOpenId: 'Open in Google Maps (place ID)',
+  nOpen: 'Open in Naver', nOpenCoord: 'Open in Naver (coordinates)', nOpenConfirmed: 'Open in Naver (confirmed place)', nOpenId: 'Open in Naver (place ID)',
+  coordOpenG: 'Open coordinate pin', coordOpenN: 'Open coordinates',
+  nameFallbackBtn: 'Fallback: search by name',
+  appIOS: 'iPhone App', appAndroid: 'Android App',
+  appIOSPin: 'iPhone App (coordinate pin)', appAndroidPin: 'Android App (coordinate pin)',
+  appIOSId: 'iPhone App (place ID)', appAndroidId: 'Android App (place ID)',
+  appIOSNameFb: 'iPhone App (name search fallback)', appAndroidNameFb: 'Android App (name search fallback)',
+  appIOSMiss: 'iPhone App (ID not found)', appAndroidMiss: 'Android App (ID not found)',
+  kOpen: 'Open in Kakao', kOpenConfirmed: 'Open in Kakao (confirmed place)', kOpenCoord: 'Open in Kakao (coordinates)',
+  kAppPinIOS: 'iPhone App (coordinate marker)', kAppPinAndroid: 'Android App (coordinate marker)',
+  yOpen: 'Open in Yahoo! MAP', yOpenCoord: 'Open in Yahoo! MAP (coordinates)', yahooHead: 'Yahoo! MAP (Japan)', rideHead: 'Ride-hailing (Uber · Kakao T · k.ride)', rideCopied: '✅ Destination copied — paste it into the app destination box', rideNoDest: 'No Korean destination to copy yet — confirm the landmark in Step 3, or paste a link with a Korean name', rideCopyFail: 'Auto-copy failed — long-press the destination text above to copy it manually', rideNote: 'Kakao T and k.ride publish no destination-prefill link format: their buttons copy the Korean destination above first, then open the app — paste it into the destination box. The Kakao T iPhone button goes to the App Store page first (shows “Open” if installed).', uberOpenBtn: '🚕 Ride here with Uber', uberNote: 'Opens Uber with this place set as the dropoff; pickup is your current location. On Android, tap “Set pickup location” first to see the destination.',
+  needCoords: 'Needs coordinates', coordOk: 'Coordinates OK', badgeConfirmed: 'Confirmed place', badgeId: 'Place ID',
+  idNotFound: 'ID not found',
+  kakaoNote: 'Korean map — the landmark candidates are looked up here. Once a place is confirmed, the web button opens that place’s Kakao page directly.',
+  yahooNote: 'Japanese map. Opening with the /place/ link shows a red pin (verified in a browser on 2026-10-23; the old center-only form has no pin and is no longer used). Note: links shared from the Yahoo mobile app carry the map CENTER at the time, not the pin — they can be off by tens of meters (measured ~82 m). For Korean places, correct it with Step 3 “Confirm landmark” after pasting.',
+  ftidLine: 'ID (ftid): {u}', coordPinLine: 'Coordinate pin: {u}',
+  monoCoordIOS: 'Coordinate pin iPhone: {u}', monoCoordAndroid: 'Coordinate pin Android: {u}',
+  monoNameIOS: 'Name search iPhone: {u}', monoNameAndroid: 'Name search Android: {u}',
+  monoNameSearch: 'Name search: {u}',
+  naverConfirmedLine: '✅ Confirmed Naver place: {title} (about {d} m from the original coordinates)',
+  monoNameAddrSearch: 'Name/address search: {u}', monoCoord: 'Coordinates: {u}',
+  monoPlaceId: 'Place link (place ID, works in any language): {u}',
+  monoNoNameHint: '(With no name/address, use the coordinate link or the App pin link above.)',
+  readyNamed: 'Place: {name}. Go to Step 4 below and tap a map button.',
+  readyFound: 'Location found. Go to Step 4 below and tap a map button.',
+  readyNameFallback: 'Name found: {name}. Use a button marked “name search fallback” or “App” below.',
+  readyNameGoogle: 'Place: {name}. Go to Step 4 below and tap the Google Maps button.',
+  readyIdOnly: 'Place ID obtained. Go to Step 4 below and tap a map button.',
+  readyPlusApprox: '{notice}Go to Step 4 below and tap a map button to see the approximate location.',
+  readyMismatch: '⚠ The two locations do not match exactly. {detail}The exact link coordinates are used this time — go to Step 4 below and tap a map button.',
+  plusNotice: 'This is an approximate location: {code} covers an area of about {w}×{h} meters, and the pin is placed at its center — it can be up to about {m} meters from the actual place. For an exact location, paste the place’s share link instead.',
+  dirEast: 'east', dirWest: 'west', dirNorth: 'north', dirSouth: 'south',
+  mismatchDetail: 'The Plus Code pasted with it, {code} (restored as {full}), does not match the link coordinates: the link point is about {out} m outside the {dir} side of the Plus Code cell, and the cell center is about {dist} m from the link point — more than this code’s maximum center error of about {max} m.',
+  mismatchStatus: '⚠ {detail}The exact link coordinates are used this time; the Plus Code may belong to a nearby point or to another map’s pin.',
+  pinNote: ' (ID {id})', nonKoreanNote: ' (non-Korean name, converted to ID)',
+  yahooShareNote: ' (Note: links shared from the Yahoo mobile app carry the map center, not the pin, and can be off by tens of meters; for Korean places, correct it with Step 3 “Confirm landmark”.)',
+  stParsed: 'Parsed: {rest}',
+  stKakaoCoord: 'Parsed the coordinates from the Kakao link.', stKakaoApp: 'Parsed the coordinates from the Kakao app link.',
+  stNaverC: 'Parsed Naver c= and converted it to Google latitude/longitude.',
+  stGoogleData: 'Parsed Google !3d latitude and !4d longitude.', stGoogleAt: 'Parsed Google @latitude,longitude.', stGoogleQ: 'Parsed Google ?q=latitude,longitude.',
+  stLatLng: 'Parsed latitude,longitude.', stXY: 'Parsed X,Y (meters) and converted them to latitude/longitude.',
+  stBadNums: 'These numbers are outside the latitude/longitude range and do not look like Naver X/Y coordinates either. Please check that you pasted latitude/longitude or a full link.',
+  stNameIdOk: 'Parsed: {name} (Google ID obtained)',
+  stNameNoId: 'Name taken: “{name}”. No Google ID was found — please use the name-search fallback.',
+  stSearchName: 'Search name taken — please double-check it.',
+  stShortCode: 'Parsed short Plus Code “{code}” (reference: {ref}, restored as {full}). Note: this is an approximate location, not the storefront.',
+  pageCoordRef: 'page coordinates',
+  approxTail: 'Note: this is an approximate location, not the storefront.',
+  stNeedCity: 'A city name is still needed. Add the city after the short code, e.g. “5RJG+F6 Gimhae” or “V6X6+RC Taoyuan”, then press Convert again.',
+  stPlaceNameOnly: 'Name taken: “{name}”. This link has no coordinates or Plus Code.',
+  stPlusSrcName: 'Parsed Google place page: name “{name}” + Plus Code {code}.',
+  stPlusSrc: 'Parsed Plus Code {code}.',
+  stIdOnlyBase: 'Parsed: place ID only, no coordinates.',
+  stIdNaver: ' Naver ID {id}.', stIdGoogle: ' Google ID obtained.', stIdKakao: ' Kakao ID {id}.',
+  stIdGuide: 'To let Google and Kakao open it too, type this place’s original Korean name in the name field, then find the landmark in Step 3.',
+  stNamePlain: 'Name taken: “{name}”. There are no coordinates — use the name-search fallback, or paste the place’s share link instead.',
+  stUnknown: 'I can’t read this content. Please check that it is a map share link, or paste latitude/longitude or a Plus Code instead.',
+  stEmpty: 'Nothing has been pasted yet. Tap the big white box first and paste the link into it.',
+  stWorking: 'Working on it, please wait…',
+  stAutoFail: 'Automatic processing did not succeed. Tap “Open short link”, wait for the new page to open, then copy the full link at the top and paste it back here.',
+  stNameFoundSuffix: 'The name “{name}” was found first.',
+  stKakaoUpgraded: 'Got the coordinates of “{name}” from Kakao — Google, Naver and Kakao can all open it now.',
+  landmarkWord: 'the place',
+  stExample: 'Example filled in: Nampo Station 남포역 35.097883,129.034663',
+  stPasteHelp: 'Press and hold the big white box above, tap “Paste” when it appears; once pasted, the page starts converting automatically.',
+  copied: 'Copied ✓', copyLink: 'Copy link', copyAppLink: 'Copy app link',
+  stNoCoordNoName: 'There are no coordinates and no Korean name, so the landmark can’t be looked up. Paste a link with coordinates, or type the original Korean name in the name field and try again.',
+  stSearching: 'Looking up nearby places, please wait…',
+  stNotConfigured: 'Nearby-place search is not set up yet: add the KAKAO_REST_KEY secret to map-resolve in Cloudflare first.',
+  stNoAddress: 'No Korean address was found for these coordinates (this feature only works inside South Korea). For an exact place, paste its share link instead.',
+  stNoSource: 'No landmark-verification data is available for this area yet (South Korea is verified via Kakao; Taiwan, Europe, North America, Oceania and Singapore via TomTom). For an exact place, paste its share link instead.',
+  stNoAddrIntl: 'No address data was found for these coordinates. For an exact place, paste its share link instead.',
+  stCandAddrIntl: 'Found the address and nearby places for these coordinates. Please tap one in the “Confirm landmark” list to confirm it.',
+  plusHelpBtn: '🗺️ Look up the Plus Code on Google Maps',
+  plusHelpHint: 'Find the place on Google Maps, copy the Plus Code from its info panel (the ⊕ row), and paste it into Step 1 — it will be decoded automatically.',
+  stNotConfTt: 'International landmark search is not set up yet: add the TOMTOM_API_KEY secret to map-resolve in Cloudflare first.',
+  stNoCandNameIntl: 'No candidates found for “{name}”. Please try a different spelling.',
+  stFindFailName: 'The nearby-place search failed. Please try again later.',
+  stFindFailAddr: 'Finding nearby places needs a Korean name (the Kakao data source only searches in Korean). Change the name to the original Korean name and try again.',
+  stNoCandName: 'No candidates found for “{name}”. Please check it is the original Korean name, or try a different spelling.',
+  stNoCandAddr: 'No place data was found near these coordinates.',
+  stCandFoundNameCoord: 'Found {n} candidates; the nearest one is selected. Please confirm it in the “Confirm landmark” section.',
+  stCandFoundNameNoCoord: 'Found {n} candidates. Please confirm which one it is in the “Confirm landmark” section; after that, Google, Naver and Kakao can all open it.',
+  stCandFoundAddr: 'Found the Korean address and nearby places for these coordinates. Please tap one in the “Confirm landmark” list to confirm it.',
+  candListFoot: 'Can’t find your place? Tap the address row at the top — it is the verified street address of this spot, and all maps will open there.',
+  candNearbyRule: '(Places: within 30 m only, up to 5)', candWidened: '(No places within 30 m, so widened to the nearest ones within 100 m; the distance is shown on each row — pick the nearest)',
+  stOffline: 'Could not reach the nearby-place search service. Please check your connection and try again.',
+  stConfirmed: 'Place confirmed: {title}. All map buttons now use the verified coordinates (about {d} m from the original ones).',
+  candRefLine: 'You searched for: {name}',
+  candDistCoord: 'About {d} m from the current coordinates.',
+  candDistNone: '(There are no starting coordinates yet; confirming will fill in this place’s coordinates.)',
+  candFar: '⚠ More than 200 m away — it may not be the same place, please check carefully.',
+
+  candEnGtx: 'English reference (Google machine translation, not an official name): {t}',
+  candEnMm: 'English reference (MyMemory machine translation, not an official name): {t}',
+  guideSummary: '📍 Google Maps Plus Code guide (tap to open)',
+  guideWhatH: 'What is a Plus Code?',
+  guideWhatP: 'A Plus Code is Google’s location code: a string of characters that stands for a latitude/longitude. A full code looks like <code>8Q7C5RJG+F63</code> (8 characters before the <code>+</code>); a short code looks like <code>5RJG+F6</code> (only 4 before the <code>+</code>, and it needs a city name).',
+  guideHowH: 'How to copy a Plus Code from the Google Maps app',
+  guideHow1: 'In the Google Maps app, tap the <strong>place name</strong> to open its card (don’t long-press an empty spot on the map — that gives the code for a different position).',
+  guideHow2: 'Scroll down to the “About” section and find the <strong>Plus Code</strong> row (e.g. <code>5RJG+F6 Gimhae, South Gyeongsang, South Korea</code>).',
+  guideHow3: 'Tap that row to copy it, or write down the short code + city name.',
+  guidePasteH: 'How to paste it into this page',
+  guidePaste1: '<strong>Full code</strong>: just paste <code>8Q7C5RJG+F63</code> — no city name needed.',
+  guidePaste2: '<strong>Short code</strong>: you must add the city name, e.g. paste <code>5RJG+F6 Gimhae</code>. Pasting only <code>5RJG+F6</code> will ask for a reference location and will not produce coordinates.',
+  guidePaste3: 'After pasting, the page starts converting automatically; if it doesn’t, press “Already pasted — Convert”. When it succeeds, tap a map button below.',
+  guideNoteH: 'Notes',
+  guideNote1: 'The app only shows <strong>short codes</strong> — always paste the city name with them.',
+  guideNote2: 'Different cell letters mean a different place: <code>F6</code> is the hotel, <code>FVG</code> is the park next door, about 150 m apart. Make sure the code came from the place card, not from long-pressing the map.',
+  guideNote3: 'A Plus Code stands for an area, not an exact pin; this page uses the center of the area. A code with 2 characters after the <code>+</code> (10 characters in total once restored) covers about 14 m across, so the center can be up to about 10 m from the place; a code with 3 characters after the <code>+</code> (11 in total) covers about 3 m, so the gap is only about 2 m. For an exact location, paste the place’s share link instead, or confirm by the name and sign when you get there.',
+  quotaLine: 'Query quota remaining — Kakao today {d}% (daily limit, busiest type, Korea time)'
+},
+id: {
+  docTitle: 'Konverter Peta Naver · Kakao · Yahoo JP · Google',
+  subLine: '<b>Tidak perlu paham koordinat.</b> Cukup ikuti langkah-langkah di bawah ini.',
+  step1Title: 'Langkah 1: Tempel tautan peta di sini',
+  pastePh: 'Tempel tautan di sini', pasteAria: 'Tempel tautan peta',
+  step1Note: 'Anda bisa menempel seluruh teks bagikan dari Google, Naver, Kakao, atau Yahoo — tidak perlu memilih tautannya sendiri.',
+  helpSummary: 'Tidak tahu harus menempel apa? Ketuk di sini',
+  helpNote1: 'Tautan bagikan peta, tautan pendek, garis lintang/bujur, atau Plus Code semuanya bisa. Plus Code ada dua bentuk (contoh: Taipei 101): kode lengkap seperti “7QQ32HM7+CR” dapat menemukan lokasi dengan sendirinya dan paling akurat; kode pendek seperti “2HM7+CR” perlu ditambah nama kota, misalnya “2HM7+CR Taipei”. Jika tidak ada Plus Code, tempel alamat biasa juga bisa.',
+  helpNote2: 'Tautan yang bisa ditempel tampak seperti ini (<b>ketuk contoh untuk mengisi dan mengonversi otomatis</b>):',
+  exGoogle: 'Google: google.com/maps/place/…@37.4496,126.4524 (Terminal 1 Bandara Incheon)',
+  exNaver: 'Naver: tautan pendek naver.me, atau map.naver.com/?lat=…&lng=… (Terminal 1 Bandara Incheon)',
+  exKakao: 'Kakao: tautan pendek kko.to, atau map.kakao.com/link/map/… (Terminal 1 Bandara Incheon)',
+  exYahoo: 'Yahoo: map.yahoo.co.jp/place/?lat=…&lon=… (Tokyo Big Sight)',
+  exPlus: 'Plus Code (pilihan utama): 7QQ32HM7+CR (Taipei 101)',
+  exShort: 'Plus Code (pendek): 2HM7+CR Taipei (Taipei 101)',
+  exAddress: 'Alamat: No. 7, Sec. 5, Xinyi Rd., Xinyi Dist., Taipei (Taipei 101)',
+  helpNote3: 'Bagikan yang Anda terima biasanya berupa tautan pendek (naver.me, kko.to, maps.app.goo.gl) plus teks — tempel saja semuanya.',
+  step2Title: 'Langkah 2: Tekan tombol besar',
+  pasteBtn: '📋 Tempel & Konversi', parseBtn: 'Sudah ditempel — Konversi', exampleBtn: 'Isi contoh',
+  clearBtn: 'Hapus semua & mulai lagi', expandBtn: 'Buka tautan pendek →',
+  readyLead: 'Sudah siap', readyDefault: 'Lanjut ke Langkah 4 di bawah, lalu ketuk tombol peta.',
+  nameLabel: 'Nama tempat (boleh kosong)', namePh: 'mis. nama hotel atau tempat wisata',
+  step3Title: 'Langkah 3: Konfirmasi landmark', landmarkHead: '✅ Konfirmasi landmark', landmarkBadge: 'Dipakai bersama Naver · Kakao',
+  landmarkNote: 'Jika koordinat hanya perkiraan (mis. dari Plus Code), cari dan konfirmasi tempatnya di sini satu kali. Setelah itu, Naver, Kakao, Google, dan Yahoo semuanya memakai landmark terverifikasi ini.',
+  findBtn: '🔍 Cari & konfirmasi landmark', findBtnRetry: '🔄 Cari lagi', findWaitNote: '⏳ Pencarian landmark memerlukan sekitar 2–5 detik. Mohon tunggu — jangan mengetuk lagi.', candClose: 'Tutup', candListHead: 'Ditemukan {n} kandidat — ketuk satu untuk mengonfirmasi; semua tombol peta akan memakai tempat yang Anda ketuk:', candSecAddr: '📍 Alamat', candSecPlaces: '🏠 Nama tempat', candCat: 'Kategori: {cat}',
+  step4Title: 'Langkah 4: Ketuk peta untuk membuka',
+  advGoogle: 'Lanjutan: lihat atau ubah lintang/bujur (biasanya tidak perlu)', advNaver: 'Lanjutan: lihat atau ubah X/Y (biasanya tidak perlu)',
+  latPh: 'Lintang', lngPh: 'Bujur', latAria: 'Lintang Google', lngAria: 'Bujur Google', mxPh: 'X', myPh: 'Y', mxAria: 'Koordinat X Naver', myAria: 'Koordinat Y Naver',
+  gOpen: 'Buka di Google Maps', gOpenPin: 'Buka di Google Maps (pin koordinat)', gOpenId: 'Buka di Google Maps (ID tempat)',
+  nOpen: 'Buka di Naver', nOpenCoord: 'Buka di Naver (koordinat)', nOpenConfirmed: 'Buka di Naver (tempat terkonfirmasi)', nOpenId: 'Buka di Naver (ID tempat)',
+  coordOpenG: 'Buka pin koordinat', coordOpenN: 'Buka koordinat',
+  nameFallbackBtn: 'Cadangan: cari berdasarkan nama',
+  appIOS: 'App iPhone', appAndroid: 'App Android',
+  appIOSPin: 'App iPhone (pin koordinat)', appAndroidPin: 'App Android (pin koordinat)',
+  appIOSId: 'App iPhone (ID tempat)', appAndroidId: 'App Android (ID tempat)',
+  appIOSNameFb: 'App iPhone (cadangan pencarian nama)', appAndroidNameFb: 'App Android (cadangan pencarian nama)',
+  appIOSMiss: 'App iPhone (ID tidak ditemukan)', appAndroidMiss: 'App Android (ID tidak ditemukan)',
+  kOpen: 'Buka di Kakao', kOpenConfirmed: 'Buka di Kakao (tempat terkonfirmasi)', kOpenCoord: 'Buka di Kakao (koordinat)',
+  kAppPinIOS: 'App iPhone (penanda koordinat)', kAppPinAndroid: 'App Android (penanda koordinat)',
+  yOpen: 'Buka di Yahoo! MAP', yOpenCoord: 'Buka di Yahoo! MAP (koordinat)', yahooHead: 'Yahoo! MAP (Jepang)', rideHead: 'Panggil kendaraan (Uber · Kakao T · k.ride)', rideCopied: '✅ Tujuan tersalin — tempel di kolom tujuan aplikasi', rideNoDest: 'Belum ada tujuan Korea untuk disalin — konfirmasi landmark di Langkah 3, atau tempel tautan dengan nama Korea', rideCopyFail: 'Salin otomatis gagal — tekan lama teks tujuan di atas untuk menyalin manual', rideNote: 'Kakao T dan k.ride tidak menerbitkan format tautan pra-isi tujuan: tombolnya menyalin tujuan Korea di atas dulu, lalu membuka aplikasi — tempel di kolom tujuan. Tombol iPhone Kakao T membuka halaman App Store dulu (menampilkan “Buka” bila sudah terpasang).', uberOpenBtn: '🚕 Naik Uber ke sini', uberNote: 'Membuka Uber dengan tempat ini sebagai tujuan turun; jemput dari lokasi Anda sekarang. Di Android, ketuk “Set pickup location” dulu agar tujuan muncul.',
+  needCoords: 'Perlu koordinat', coordOk: 'Koordinat OK', badgeConfirmed: 'Tempat terkonfirmasi', badgeId: 'ID tempat',
+  idNotFound: 'ID tidak ditemukan',
+  kakaoNote: 'Peta Korea — kandidat landmark dicari dari sini. Setelah tempat dikonfirmasi, tombol web membuka langsung halaman Kakao tempat tersebut.',
+  yahooNote: 'Peta Jepang. Membuka dengan tautan /place/ menampilkan pin merah (terverifikasi di browser pada 2026-10-23; bentuk lama yang hanya memusatkan peta tidak ada pin dan tidak dipakai lagi). Catatan: tautan yang dibagikan dari aplikasi seluler Yahoo membawa posisi TENGAH peta saat itu, bukan pin — bisa meleset puluhan meter (terukur ~82 m). Untuk tempat di Korea, perbaiki dengan Langkah 3 “Konfirmasi landmark” setelah menempel.',
+  ftidLine: 'ID (ftid): {u}', coordPinLine: 'Pin koordinat: {u}',
+  monoCoordIOS: 'Pin koordinat iPhone: {u}', monoCoordAndroid: 'Pin koordinat Android: {u}',
+  monoNameIOS: 'Pencarian nama iPhone: {u}', monoNameAndroid: 'Pencarian nama Android: {u}',
+  monoNameSearch: 'Pencarian nama: {u}',
+  naverConfirmedLine: '✅ Tempat Naver terkonfirmasi: {title} (sekitar {d} m dari koordinat asal)',
+  monoNameAddrSearch: 'Pencarian nama/alamat: {u}', monoCoord: 'Koordinat: {u}',
+  monoPlaceId: 'Tautan tempat (ID tempat, berfungsi dalam bahasa apa pun): {u}',
+  monoNoNameHint: '(Tanpa nama/alamat, gunakan tautan koordinat atau tautan pin App di atas.)',
+  readyNamed: 'Tempat: {name}. Lanjut ke Langkah 4 di bawah, lalu ketuk tombol peta.',
+  readyFound: 'Lokasi ditemukan. Lanjut ke Langkah 4 di bawah, lalu ketuk tombol peta.',
+  readyNameFallback: 'Nama ditemukan: {name}. Gunakan tombol bertanda “cadangan pencarian nama” atau “App” di bawah.',
+  readyNameGoogle: 'Tempat: {name}. Lanjut ke Langkah 4 di bawah, lalu ketuk tombol Google Maps.',
+  readyIdOnly: 'ID tempat didapat. Lanjut ke Langkah 4 di bawah, lalu ketuk tombol peta.',
+  readyPlusApprox: '{notice}Lanjut ke Langkah 4 di bawah, lalu ketuk tombol peta untuk melihat lokasi perkiraan.',
+  readyMismatch: '⚠ Kedua lokasi tidak sama persis. {detail}Kali ini koordinat tautan yang persis yang dipakai — lanjut ke Langkah 4 di bawah, lalu ketuk tombol peta.',
+  plusNotice: 'Ini lokasi perkiraan: {code} mencakup area sekitar {w}×{h} meter, dan pin diletakkan di tengahnya — bisa meleset hingga sekitar {m} meter dari tempat sebenarnya. Untuk lokasi persis, tempel tautan bagikan tempat tersebut.',
+  dirEast: 'timur', dirWest: 'barat', dirNorth: 'utara', dirSouth: 'selatan',
+  mismatchDetail: 'Plus Code yang ditempel bersamaan, {code} (dipulihkan menjadi {full}), tidak cocok dengan koordinat tautan: titik tautan berada sekitar {out} m di luar sisi {dir} sel Plus Code, dan pusat sel berjarak sekitar {dist} m dari titik tautan — melebihi galat pusat maksimum kode ini sekitar {max} m.',
+  mismatchStatus: '⚠ {detail}Kali ini koordinat tautan yang persis yang dipakai; Plus Code itu mungkin milik titik di dekatnya atau pin peta lain.',
+  pinNote: ' (ID {id})', nonKoreanNote: ' (nama bukan Korea, diubah ke ID)',
+  yahooShareNote: ' (Catatan: tautan dari aplikasi seluler Yahoo membawa posisi tengah peta, bukan pin, dan bisa meleset puluhan meter; untuk tempat di Korea, perbaiki dengan Langkah 3 “Konfirmasi landmark”.)',
+  stParsed: 'Dibaca: {rest}',
+  stKakaoCoord: 'Koordinat dari tautan Kakao berhasil dibaca.', stKakaoApp: 'Koordinat dari tautan aplikasi Kakao berhasil dibaca.',
+  stNaverC: 'Naver c= berhasil dibaca dan diubah ke lintang/bujur Google.',
+  stGoogleData: 'Lintang !3d dan bujur !4d Google berhasil dibaca.', stGoogleAt: 'Google @lintang,bujur berhasil dibaca.', stGoogleQ: 'Google ?q=lintang,bujur berhasil dibaca.',
+  stLatLng: 'Lintang,bujur berhasil dibaca.', stXY: 'X,Y (meter) berhasil dibaca dan diubah ke lintang/bujur.',
+  stBadNums: 'Angka-angka ini di luar rentang lintang/bujur dan juga tidak tampak seperti koordinat X/Y Naver. Periksa kembali bahwa yang ditempel adalah lintang/bujur atau tautan lengkap.',
+  stNameIdOk: 'Dibaca: {name} (ID Google didapat)',
+  stNameNoId: 'Nama diambil: “{name}”. ID Google tidak ditemukan — gunakan cadangan pencarian nama.',
+  stSearchName: 'Nama pencarian diambil — periksa kembali.',
+  stShortCode: 'Plus Code pendek “{code}” berhasil dibaca (referensi: {ref}, dipulihkan menjadi {full}). Catatan: ini lokasi perkiraan, bukan pintu tempatnya.',
+  pageCoordRef: 'koordinat halaman',
+  approxTail: 'Catatan: ini lokasi perkiraan, bukan pintu tempatnya.',
+  stNeedCity: 'Masih perlu nama kota. Tambahkan kota setelah kode pendek, misalnya “5RJG+F6 Gimhae” atau “V6X6+RC Taoyuan”, lalu tekan Konversi lagi.',
+  stPlaceNameOnly: 'Nama diambil: “{name}”. Tautan ini tidak memiliki koordinat atau Plus Code.',
+  stPlusSrcName: 'Halaman tempat Google dibaca: nama “{name}” + Plus Code {code}.',
+  stPlusSrc: 'Plus Code {code} berhasil dibaca.',
+  stIdOnlyBase: 'Dibaca: hanya ID tempat, tanpa koordinat.',
+  stIdNaver: ' ID Naver {id}.', stIdGoogle: ' ID Google didapat.', stIdKakao: ' ID Kakao {id}.',
+  stIdGuide: 'Agar Google dan Kakao juga bisa membukanya, ketik nama asli Korea tempat ini di kolom nama — pencarian landmark akan dimulai otomatis.',
+  stNamePlain: 'Nama diambil: “{name}”. Tidak ada koordinat — gunakan cadangan pencarian nama, atau tempel tautan bagikan tempat tersebut.',
+  stUnknown: 'Konten ini tidak bisa dibaca. Periksa bahwa ini tautan bagikan peta, atau tempel lintang/bujur atau Plus Code.',
+  stEmpty: 'Belum ada yang ditempel. Ketuk kotak putih besar dulu dan tempel tautannya.',
+  stWorking: 'Sedang diproses, mohon tunggu…',
+  stAutoFail: 'Pemrosesan otomatis tidak berhasil. Ketuk “Buka tautan pendek”, tunggu halaman baru terbuka, lalu salin tautan lengkap di bagian atas dan tempel kembali ke sini.',
+  stNameFoundSuffix: 'Nama “{name}” ditemukan lebih dulu.',
+  stKakaoUpgraded: 'Koordinat “{name}” didapat dari Kakao — Google, Naver, dan Kakao sekarang bisa membukanya.',
+  landmarkWord: 'tempat tersebut',
+  stExample: 'Contoh diisi: Stasiun Nampo 남포역 35.097883,129.034663',
+  stPasteHelp: 'Tekan dan tahan kotak putih besar di atas, ketuk “Tempel” saat muncul; setelah ditempel, halaman mulai mengonversi otomatis.',
+  copied: 'Disalin ✓', copyLink: 'Salin tautan', copyAppLink: 'Salin tautan app',
+  stNoCoordNoName: 'Tidak ada koordinat dan tidak ada nama Korea, jadi landmark tidak bisa dicari. Tempel tautan yang memiliki koordinat, atau ketik nama asli Korea di kolom nama lalu coba lagi.',
+  stSearching: 'Mencari tempat di sekitar, mohon tunggu…',
+  stNotConfigured: 'Pencarian tempat sekitar belum disiapkan: tambahkan secret KAKAO_REST_KEY ke map-resolve di Cloudflare dulu.',
+  stNoAddress: 'Tidak ditemukan alamat Korea untuk koordinat ini (fitur ini hanya berfungsi di dalam Korea Selatan). Untuk tempat yang persis, tempel tautan bagikannya.',
+  stNoSource: 'Belum ada data verifikasi landmark untuk area ini (Korea Selatan diverifikasi lewat Kakao; Taiwan, Eropa, Amerika Utara, Oseania, dan Singapura lewat TomTom). Untuk tempat yang persis, tempel tautan bagikannya.',
+  stNoAddrIntl: 'Tidak ditemukan data alamat untuk koordinat ini. Untuk tempat yang persis, tempel tautan bagikannya.',
+  stCandAddrIntl: 'Alamat dan tempat sekitar untuk koordinat ini ditemukan. Ketuk satu di daftar “Konfirmasi landmark” untuk mengonfirmasi.',
+  plusHelpBtn: '🗺️ Cari Plus Code di Google Maps',
+  plusHelpHint: 'Temukan tempatnya di Google Maps, salin Plus Code dari panel infonya (baris ⊕), lalu tempel ke Langkah 1 — kode akan diterjemahkan otomatis.',
+  stNotConfTt: 'Pencarian landmark internasional belum disiapkan: tambahkan secret TOMTOM_API_KEY ke map-resolve di Cloudflare dulu.',
+  stNoCandNameIntl: 'Tidak ditemukan kandidat untuk “{name}”. Coba ejaan lain.',
+  stFindFailName: 'Pencarian tempat sekitar gagal. Coba lagi nanti.',
+  stFindFailAddr: 'Mencari tempat sekitar memerlukan nama Korea (sumber data Kakao hanya bisa mencari dalam bahasa Korea). Ubah nama menjadi nama asli Korea lalu coba lagi.',
+  stNoCandName: 'Tidak ditemukan kandidat untuk “{name}”. Periksa bahwa itu nama asli Korea, atau coba ejaan lain.',
+  stNoCandAddr: 'Tidak ditemukan data tempat di sekitar koordinat ini.',
+  stCandFoundNameCoord: 'Ditemukan {n} kandidat; yang terdekat sudah dipilih. Konfirmasi di bagian “Konfirmasi landmark”.',
+  stCandFoundNameNoCoord: 'Ditemukan {n} kandidat. Konfirmasi yang mana di bagian “Konfirmasi landmark”; setelah itu Google, Naver, dan Kakao bisa membukanya.',
+  stCandFoundAddr: 'Alamat Korea dan tempat sekitar untuk koordinat ini ditemukan. Ketuk satu di daftar “Konfirmasi landmark” untuk mengonfirmasi.',
+  candListFoot: 'Tidak menemukan tempat Anda? Ketuk baris alamat di paling atas — itu alamat terverifikasi untuk titik ini, dan semua peta akan terbuka di sana.',
+  candNearbyRule: '(Tempat: hanya dalam 30 m, maks. 5)', candWidened: '(Tidak ada tempat dalam 30 m, jadi diperluas ke yang terdekat dalam 100 m; jarak tertulis di setiap baris — pilih yang terdekat)',
+  stOffline: 'Tidak dapat terhubung ke layanan pencarian tempat sekitar. Periksa koneksi Anda lalu coba lagi.',
+  stConfirmed: 'Tempat dikonfirmasi: {title}. Semua tombol peta sekarang memakai koordinat terverifikasi (sekitar {d} m dari koordinat asal).',
+  candRefLine: 'Anda mencari: {name}',
+  candDistCoord: 'Sekitar {d} m dari koordinat saat ini.',
+  candDistNone: '(Belum ada koordinat awal; mengonfirmasi akan mengisi koordinat tempat ini.)',
+  candFar: '⚠ Lebih dari 200 m jauhnya — mungkin bukan tempat yang sama, periksa dengan teliti.',
+
+  candEnGtx: 'Referensi Inggris (terjemahan mesin Google, bukan nama resmi): {t}',
+  candEnMm: 'Referensi Inggris (terjemahan mesin MyMemory, bukan nama resmi): {t}',
+  guideSummary: '📍 Panduan Plus Code Google Maps (ketuk untuk membuka)',
+  guideWhatH: 'Apa itu Plus Code?',
+  guideWhatP: 'Plus Code adalah kode lokasi Google: rangkaian karakter yang mewakili lintang/bujur. Kode lengkap tampak seperti <code>8Q7C5RJG+F63</code> (8 karakter sebelum <code>+</code>); kode pendek seperti <code>5RJG+F6</code> (hanya 4 sebelum <code>+</code>, dan perlu nama kota).',
+  guideHowH: 'Cara menyalin Plus Code dari aplikasi Google Maps',
+  guideHow1: 'Di aplikasi Google Maps, ketuk <strong>nama tempat</strong> untuk membuka kartunya (jangan tekan lama titik kosong di peta — itu memberi kode untuk posisi lain).',
+  guideHow2: 'Gulir ke bawah ke bagian “Tentang” dan temukan baris <strong>Plus Code</strong> (mis. <code>5RJG+F6 Gimhae, Gyeongsang Selatan, Korea Selatan</code>).',
+  guideHow3: 'Ketuk baris itu untuk menyalin, atau catat kode pendek + nama kotanya.',
+  guidePasteH: 'Cara menempelnya ke halaman ini',
+  guidePaste1: '<strong>Kode lengkap</strong>: cukup tempel <code>8Q7C5RJG+F63</code> — tidak perlu nama kota.',
+  guidePaste2: '<strong>Kode pendek</strong>: wajib menambahkan nama kota, mis. tempel <code>5RJG+F6 Gimhae</code>. Menempel <code>5RJG+F6</code> saja akan meminta lokasi referensi dan tidak menghasilkan koordinat.',
+  guidePaste3: 'Setelah ditempel, halaman mulai mengonversi otomatis; jika tidak, tekan “Sudah ditempel — Konversi”. Jika berhasil, ketuk tombol peta di bawah.',
+  guideNoteH: 'Catatan',
+  guideNote1: 'Aplikasi hanya menampilkan <strong>kode pendek</strong> — selalu tempel bersama nama kotanya.',
+  guideNote2: 'Huruf sel yang berbeda berarti tempat yang berbeda: <code>F6</code> adalah hotel, <code>FVG</code> adalah taman di sebelahnya, berjarak sekitar 150 m. Pastikan kode berasal dari kartu tempat, bukan dari menekan lama peta.',
+  guideNote3: 'Plus Code mewakili sebuah area, bukan pin yang persis; halaman ini memakai pusat area tersebut. Kode dengan 2 karakter setelah <code>+</code> (total 10 karakter setelah dipulihkan) mencakup sekitar 14 m, jadi pusatnya bisa meleset hingga sekitar 10 m dari tempatnya; kode dengan 3 karakter setelah <code>+</code> (total 11) mencakup sekitar 3 m, jadi selisihnya hanya sekitar 2 m. Untuk lokasi persis, tempel tautan bagikan tempat tersebut, atau konfirmasi dengan nama dan papan nama saat tiba.',
+  quotaLine: 'Sisa kuota pencarian — Kakao hari ini {d}% (batas harian, jenis tersibuk, waktu Korea)'
+}
+};
+let LANG = 'zh';
+try {
+  const qp = (typeof location !== 'undefined' && location.search) ? new URLSearchParams(location.search).get('lang') : null;
+  const saved = qp || localStorage.getItem('mcLang');
+  if (saved === 'en' || saved === 'id' || saved === 'zh') LANG = saved;
+} catch (e) {}
+function T(key, vars) {
+  let s = (STR[LANG] && STR[LANG][key]) || STR.zh[key] || key;
+  if (vars) for (const k in vars) s = s.split('{' + k + '}').join(String(vars[k]));
+  return s;
+}
+function specText(spec) {
+  if (!spec) return '';
+  const v = {};
+  for (const k in (spec.v || {})) { const val = spec.v[k]; v[k] = (val && typeof val === 'object' && val.k) ? specText(val) : val; }
+  return T(spec.k, v);
+}
+// FIX fix73: footer quota remaining - show only the Kakao query quota (user's rule: no system info on the page; Worker/Cloudflare numbers live only in the daily report).
+// Reads the Worker's public /stats (KST day boundary + KST calendar month): daily remaining is computed from the highest-usage Kakao API class against the 100,000/day cap
+// (the class that runs out first); monthly uses kakao_total against the 3,000,000/month cap.
+let quotaVals = null;
+function renderQuota() {
+  const el = $('quotaLine');
+  if (!el || !quotaVals) return;
+  el.textContent = T('quotaLine', quotaVals);
+  el.hidden = false;
+}
+// FIX fix109: shared timeout-signal helper - older Safari (before iOS 16.4) has no AbortSignal.timeout;
+// calling it directly throws a TypeError and fails the whole fetch (/resolve, /place and machine translation all hit this); route through the helper:
+// use the timeout when available, otherwise return undefined (the fetch still goes out, just without timeout protection) - identical behaviour on old and new browsers.
+function toSig(ms) { try { return (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) ? AbortSignal.timeout(ms) : undefined; } catch (e) { return undefined; } }
+async function loadQuota() {
+  // FIX fix81: user field report "it takes a while to appear" - measured: the daily endpoint takes 0.7 s, the monthly aggregate endpoint 14 s
+  // (the Worker reads KV day by day to total the month); the old version waited for both before displaying. Now staged: the daily value displays as soon as it arrives (the month column shows a placeholder first), the monthly value fills in when ready.
+  // Position stays at the original footer spot (user's rule: keep it in the original place only; fix80 briefly added a copy above Step 3, reverted).
+  // FIX fix82: user-chosen speedups 1+2 - (1) keep the last balance in localStorage and display it instantly on page open (reused only for the same KST day / same KST month;
+  // stale fields show an ellipsis until fresh values arrive); overwrite and save back when fresh values land. (2) a preconnect in <head> warms the Worker connection.
+  // The monthly endpoint itself was changed by Worker fix82 to a single month-prefix listing (14 s -> about 1 s; effective after the user deploys it).
+  const base = 'https://map-resolve.map-converter.workers.dev/stats';
+  const left = (used, limit) => Math.max(0, 100 - used / limit * 100).toFixed(2);
+  const nowIso = new Date(Date.now() + 9 * 3600 * 1000).toISOString();
+  const now = { date: nowIso.slice(0, 10), month: nowIso.slice(0, 7) };
+  const save = () => { try { localStorage.setItem('mcQuota', JSON.stringify({ d: quotaVals.d, date: now.date })); } catch (e) {} };
+  try {
+    const c = JSON.parse(localStorage.getItem('mcQuota') || 'null');
+    if (c && c.date === now.date && c.d) { quotaVals = { d: c.d }; renderQuota(); }
+  } catch (e) {}
+  // FIX fix85: user's corrected final version - the front end shows the daily balance (today only); the monthly figure is not shown and appears only in the back-end daily/monthly reports.
+  // (fix84 removed the block entirely; restored to the fix83 daily display after the user's correction.) The page calls only the daily endpoint, never the slow monthly aggregate endpoint (removing the root cause of the slowness;
+  // the month-to-date total still lives in the 08:00 daily report and the month-end settlement). Worker fix82's monthly speedup therefore benefits the reports only; the page does not depend on it.
+  try {
+    const kd = await fetch(base + '?tz=kst', { signal: toSig(8000) }).then(r => r.json());
+    if (!kd || kd.error) return;
+    const maxType = Math.max(kd.kakao_keyword || 0, kd.kakao_coord2address || 0, kd.kakao_address || 0, kd.kakao_category || 0);
+    quotaVals = { d: left(maxType, 100000) };
+    renderQuota(); save();
+  } catch (e) {}
+}
+function applyLang(l) {
+  LANG = (l === 'en' || l === 'id') ? l : 'zh';
+  try { localStorage.setItem('mcLang', LANG); } catch (e) {}
+  if (document.documentElement) document.documentElement.lang = (LANG === 'en') ? 'en' : (LANG === 'id') ? 'id' : 'zh-Hant';
+  document.title = T('docTitle');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = T(el.getAttribute('data-i18n')); });
+  setFindBtnMode(findBtnMode); // fix97: keep the button form (big/small) across language switches
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = T(el.getAttribute('data-i18n-html')); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.setAttribute('placeholder', T(el.getAttribute('data-i18n-ph'))); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', T(el.getAttribute('data-i18n-aria'))); });
+  for (const [btnId, code] of [['langZh', 'zh'], ['langEn', 'en'], ['langId', 'id']]) {
+    const b = $(btnId);
+    if (b) { b.style.background = LANG === code ? '#111' : '#fff'; b.style.color = LANG === code ? '#fff' : '#111'; }
+  }
+  updateLinks();
+  renderQuota();
+  if (els.candidateBox && !els.candidateBox.hidden) renderCandidateList();
+}
+function wgsToMerc(lng,lat){
+  const x = lng * R / 180;
+  const y = Math.log(Math.tan((90+lat)*Math.PI/360)) / (Math.PI/180) * R / 180;
+  return [x,y];
+}
+function mercToWgs(x,y){
+  const lng = x * 180 / R;
+  const lat = Math.atan(Math.exp(y*Math.PI/R)) * 360/Math.PI - 90;
+  return [lng,lat];
+}
+function fmt(n,d){ const s = Number(n).toFixed(d); return d === 2 ? s : String(Number(s)); }
+function setStatus(msg,ok){ els.status.textContent = msg||''; els.status.className='status '+(ok?'ok':'err'); }
+
+function updateLinks(){
+  if(els.readyBox){
+    els.readyBox.hidden = !hasReadyResult;
+    if(hasReadyResult) els.readyText.textContent = readySpec ? specText(readySpec) : T('readyDefault');
+  }
+  const lat = parseFloat(els.lat.value), lng = parseFloat(els.lng.value);
+  const name = els.name.value.trim();
+  const hasCoords = isFinite(lat) && isFinite(lng);
+  const hasName = !!name;
+  const APPNAME = encodeURIComponent('https://trevor-web-cloud.github.io/map-converter/');
+  // FIX fix9: the main button prefers the place-name/address search; otherwise any address would be carried away by the default Nampo-dong coordinates.
+  // Reason: the coordinate fields defaulted to Nampo Station, and the main button always used the coordinate link, so even a typed place name still opened Nampo-dong.
+  // New rule: with a place name -> main button = name search; the coordinate pin is a separate button, to be tapped only when the coordinates certainly belong to this place.
+  // App shares are all short URLs: a short link carries no coordinates, so pasting one must not reuse old coordinates - expand it first or use the name search.
+  // FIX fix46: the empty-state early return must also require "no ID"; with only an ID (no coords, no name) execution must continue into the ID button logic below,
+  // otherwise pasting a /p/entry/place/{id} or ?ftid= link would show empty buttons forever (caught by matrix G7/N2).
+  if(!hasCoords && !hasName && !currentPinId && !currentGoogleId && !currentKakaoId){
+    els.googleLink.textContent='—'; els.googleApp.textContent='—'; els.naverLink.textContent='—'; els.naverApp.textContent='—';
+    if(els.naverAppAndroidText) els.naverAppAndroidText.textContent='—';
+    // FIX fix20: on clear, reset ALL button texts and hide the fallback buttons, otherwise the previous state's "place ID / ID not found / fallback" texts linger.
+    els.googleOpen.href='#'; els.googleOpen.textContent=T('gOpen');
+    els.naverOpen.href='#'; els.naverOpen.textContent=T('nOpen');
+    if(els.googleCoordOpen){ els.googleCoordOpen.href='#'; els.googleCoordOpen.style.display='none'; }
+    if(els.naverCoordOpen){ els.naverCoordOpen.href='#'; els.naverCoordOpen.style.display='none'; }
+    if(els.googleAppIOS){ els.googleAppIOS.href='#'; els.googleAppIOS.textContent=T('appIOS'); }
+    if(els.googleAppAndroid){ els.googleAppAndroid.href='#'; els.googleAppAndroid.textContent=T('appAndroid'); }
+    if(els.naverAppOpen){ els.naverAppOpen.href='#'; els.naverAppOpen.textContent=T('appIOS'); }
+    if(els.naverAppAndroid){ els.naverAppAndroid.href='#'; els.naverAppAndroid.textContent=T('appAndroid'); }
+    if(els.googleNameFallback) els.googleNameFallback.style.display='none';
+    if(els.naverNameFallback) els.naverNameFallback.style.display='none';
+    { const pb = $('plusHelpBtn'), ph = $('plusHelpHint'); if(pb) pb.style.display='none'; if(ph) ph.style.display='none'; } // fix104: the empty-state early return must also collapse the Plus Code helper button (caught by W6)
+    if(els.findBtn) els.findBtn.style.display='none';
+    { const wn = $('findWaitNote'); if(wn) wn.style.display='none'; }
+    autoFindArmed = false; autoFindKey = '';
+    if(els.candidateBox) els.candidateBox.hidden=true;
+    // FIX fix30: on clear, also reset the Yahoo buttons.
+    if(els.yahooLink) els.yahooLink.textContent='—';
+    if(els.yahooOpen){ els.yahooOpen.href='#'; els.yahooOpen.textContent=T('yOpen'); }
+    if(els.kakaoBadge) els.kakaoBadge.textContent=T('needCoords');
+    if(els.yahooBadge) els.yahooBadge.textContent=T('needCoords');
+    if(els.uberLink) els.uberLink.textContent='—';
+    if(els.uberOpen){ els.uberOpen.href='#'; els.uberOpen.textContent=T('uberOpenBtn'); }
+    if(els.rideBadge) els.rideBadge.textContent=T('needCoords');
+    if(els.rideDest) els.rideDest.textContent='—';
+    if(els.rideCopyStatus) els.rideCopyStatus.textContent='';
+    if(els.yahooNameFallback) els.yahooNameFallback.style.display='none';
+    // FIX fix56: on clear, also reset the Kakao buttons.
+    if(els.kakaoLink) els.kakaoLink.textContent='—';
+    if(els.kakaoOpen){ els.kakaoOpen.href='#'; els.kakaoOpen.textContent=T('kOpen'); }
+    if(els.kakaoAppOpen){ els.kakaoAppOpen.href='#'; els.kakaoAppOpen.textContent=T('appIOS'); }
+    if(els.kakaoAppAndroid){ els.kakaoAppAndroid.href='#'; els.kakaoAppAndroid.textContent=T('appAndroid'); }
+    return;
+  }
+  const latS = hasCoords ? fmt(lat,7) : '', lngS = hasCoords ? fmt(lng,7) : '';
+  // FIX fix17: both the Google and Naver main buttons use ID search only, never a name-search fallback.
+  // Google ID priority: ftid (the Google place ID in the link) > coordinate pin (when the coordinates belong to this place) > ID not found.
+  // Name search exists only as the fallback button (googleNameFallback), shown only when the ID is missing.
+  const coordsPrimary = hasCoords && (coordsValidForName || !hasName);
+  const gCoordWeb = hasCoords ? 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(latS+','+lngS) : '';
+  const gNameWeb = hasName ? 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(name) : '';
+  const gFtidWeb = currentGoogleId ? 'https://maps.google.com/?ftid='+encodeURIComponent(currentGoogleId) : '';
+  els.googleLink.textContent = (currentGoogleId ? T('ftidLine',{u:gFtidWeb}) : '') + (coordsPrimary ? '\n'+T('coordPinLine',{u:gCoordWeb}) : '');
+  // FIX fix22: coordinates first - valid coordinates -> coordinate pin; no coordinates -> ID; neither -> "ID not found", never a name search.
+  if(coordsPrimary){
+    els.googleOpen.href = gCoordWeb;
+    els.googleOpen.textContent = T('gOpenPin');
+  }else if(currentGoogleId){
+    els.googleOpen.href = gFtidWeb;
+    els.googleOpen.textContent = T('gOpenId');
+  }else{
+    els.googleOpen.href = '#';
+    els.googleOpen.textContent = T('idNotFound');
+  }
+  if(els.googleCoordOpen){ els.googleCoordOpen.href = gCoordWeb || '#'; els.googleCoordOpen.style.display = hasCoords ? '' : 'none'; }
+  const gAppCoord = hasCoords ? 'comgooglemaps://?q='+encodeURIComponent(latS+','+lngS)+'&zoom=17' : '';
+  const gAppName = hasName ? 'comgooglemaps://?q='+encodeURIComponent(name)+'&zoom=17' : '';
+  const gAppAndroidCoord = hasCoords ? 'geo:'+latS+','+lngS+'?q='+encodeURIComponent(latS+','+lngS) : '';
+  const gAppAndroidName = hasName ? 'geo:0,0?q='+encodeURIComponent(name) : '';
+  els.googleApp.textContent = (coordsPrimary ? T('monoCoordIOS',{u:gAppCoord})+'\n'+T('monoCoordAndroid',{u:gAppAndroidCoord}) : '') + (hasName ? (coordsPrimary ? '\n' : '') + T('monoNameIOS',{u:gAppName})+'\n'+T('monoNameAndroid',{u:gAppAndroidName}) : '') + (!coordsPrimary && hasCoords ? '\n'+T('monoCoordIOS',{u:gAppCoord})+'\n'+T('monoCoordAndroid',{u:gAppAndroidCoord}) : '');
+  // FIX fix21: app buttons must not be dead buttons (an href='#' that does nothing on tap = the user's "cannot open" report).
+  // Google App: an ftid cannot be used in an App URL scheme, so the app uses the coordinate pin; with no coordinates but a name, fall back to the name search (clearly labelled) so the app can open; only with neither does it show ID not found.
+  if(els.googleAppIOS){
+    if(coordsPrimary){ els.googleAppIOS.href = gAppCoord || '#'; els.googleAppIOS.textContent = T('appIOS'); }
+    else if(hasName){ els.googleAppIOS.href = gAppName; els.googleAppIOS.textContent = T('appIOSNameFb'); }
+    else { els.googleAppIOS.href = '#'; els.googleAppIOS.textContent = T('appIOSMiss'); }
+  }
+  if(els.googleAppAndroid){
+    if(coordsPrimary){ els.googleAppAndroid.href = gAppAndroidCoord || '#'; els.googleAppAndroid.textContent = T('appAndroid'); }
+    else if(hasName){ els.googleAppAndroid.href = gAppAndroidName; els.googleAppAndroid.textContent = T('appAndroidNameFb'); }
+    else { els.googleAppAndroid.href = '#'; els.googleAppAndroid.textContent = T('appAndroidMiss'); }
+  }
+  if(els.googleNameFallback){
+    if(hasName && !currentGoogleId && !coordsPrimary){
+      els.googleNameFallback.href = gNameWeb;
+      els.googleNameFallback.style.display = '';
+    }else els.googleNameFallback.style.display = 'none';
+  }
+
+  const [x,y] = hasCoords ? wgsToMerc(lng,lat) : [NaN,NaN];
+  const xS = hasCoords ? fmt(x,2) : '', yS = hasCoords ? fmt(y,2) : '';
+  // FIX fix40: once a Naver candidate is confirmed, the Naver link uses the candidate's coordinates from Naver's data (the Google fields' coordinates are untouched).
+  const nLat = naverOverride ? naverOverride.lat : lat;
+  const nLng = naverOverride ? naverOverride.lng : lng;
+  const nLatS = hasCoords ? fmt(nLat,7) : '', nLngS = hasCoords ? fmt(nLng,7) : '';
+  const [nx,ny] = hasCoords ? wgsToMerc(nLng,nLat) : [NaN,NaN];
+  const nxS = hasCoords ? fmt(nx,2) : '', nyS = hasCoords ? fmt(ny,2) : '';
+  // FIX fix43 (2026-10-22): the old format map.naver.com/p?c={EPSG3857 X,Y},15,... was retired by Naver's redesign;
+  // opening it drops the coordinates (the URL is rewritten to c=15.00,0,0,0,dh and the map is blank).
+  // FIX fix44 (2026-10-22): /p/search/{lat},{lng} on desktop browsers redirects to /p/entry/coordinates/... and shows a red pin + address panel.
+  // FIX fix47 (2026-10-22, field report overturning fix44): opened on an iPhone, /p/search/{coords} is 301-redirected by Naver's server to
+  // an "App text search" URL (?query={coords}&appTargetPage=search) -> the App shows No results (user screenshot evidence).
+  // Switched to Naver's official handoff format map.naver.com/?lat=&lng=&menu=location (the official format naver.me expansions and coordinate pages use for the App):
+  // iPhone measured 302 -> m.map.naver.com keeps the coordinates + menu=location (a map location page, not a search); desktop measured 301 -> coordinate map page.
+  // The code in /p/entry/coordinates/{code} is a Naver-internal encoding (not plain base62) and cannot be generated reliably - not used.
+  const nCoordWeb = hasCoords ? 'https://map.naver.com/?lat='+nLatS+'&lng='+nLngS+'&menu=location' : '';
+  const nSearch = hasName ? 'https://map.naver.com/p/search/'+encodeURIComponent(name) : '';
+  // Naver App: with a name -> nmap://search / intent://search; without a name but with coordinates -> nmap://place / intent://place
+  // FIX fix47: when there is no name, never stuff the coordinate string in as the name (field report: the App treated "35.098562,129.030938" as a search string -> No results).
+  // Use the confirmed candidate's title instead, or the formal label for "coordinate location" in Korean.
+  // FIX fix48: the name on an nmap place link is nominally a label, but the App may re-resolve the place from it:
+  // passing a Chinese place name from a Google link (e.g. a Myeongdong dumpling shop's Chinese name) jumps to the place the App decides it is, which can differ from the chosen landmark (field report).
+  // The coordinates are the substance - name uses only: confirmed candidate title > Korean name from the same source as the coordinates > the neutral Korean label for "coordinate location"; non-Korean names are never passed.
+  const appPlaceName = (naverOverride && naverOverride.title) ? naverOverride.title : (/[\uAC00-\uD7A3]/.test(name) ? name : '좌표 위치');
+  const nAppCoord = hasCoords ? 'nmap://place?lat='+nLatS+'&lng='+nLngS+'&name='+encodeURIComponent(appPlaceName)+'&appname='+APPNAME : '';
+  const nAppName = hasName ? 'nmap://search?query='+encodeURIComponent(name)+'&appname='+APPNAME : '';
+  const nAppAndroidCoord = hasCoords ? 'intent://place?lat='+nLatS+'&lng='+nLngS+'&name='+encodeURIComponent(appPlaceName)+'&appname='+APPNAME+'#Intent;scheme=nmap;package=com.nhn.android.nmap;S.browser_fallback_url='+encodeURIComponent('https://play.google.com/store/apps/details?id=com.nhn.android.nmap')+';end' : '';
+  const nAppAndroidName = hasName ? 'intent://search?query='+encodeURIComponent(name)+'&appname='+APPNAME+'#Intent;scheme=nmap;package=com.nhn.android.nmap;S.browser_fallback_url='+encodeURIComponent('https://play.google.com/store/apps/details?id=com.nhn.android.nmap')+';end' : '';
+  els.naverLink.textContent = (naverOverride ? T('naverConfirmedLine',{title:naverOverride.title, d:Math.round(naverOverride.distanceM)})+'\n' : '') + (hasName ? T('monoNameAddrSearch',{u:nSearch}) : '') + (hasCoords ? (hasName||naverOverride ? '\n' : '') + T('monoCoord',{u:nCoordWeb}) : '') + (currentPinId ? '\n'+T('monoPlaceId',{u:'https://map.naver.com/p/entry/place/'+currentPinId}) : '') + (!hasName ? '\n'+T('monoNoNameHint') : '');
+  // FIX fix40: the find-nearest-Naver-place button shows only with valid coordinates + a Korean name + no pinId/confirmed candidate yet.
+  // FIX fix45: user field test "the candidate box never appeared" - names extracted from Google links are mostly Chinese (no Korean), so the button was hidden forever.
+  // Now shown whenever there are valid coordinates and no pinId/confirmed candidate; the Korean-name requirement is checked at click time with a prompt instead (inside findNearestNaver).
+  if(els.findBtn){
+    // FIX fix64: with no coordinates but a Korean name, the landmark can still be found (a name query needs no coordinates) - Google ftid shares and ID-only Naver links rely on it to fill in coordinates so all three maps can open.
+    // FIX fix94 (2026-10-25, user case naver.me/x4lws2zw): the expansion has coordinates + pinId + a Chinese name; the old rule "with a pinId, no Step 3" meant no candidate list ever;
+    // it also disagreed with Google links (which auto-search even with an ftid). Changed: with primary coordinates and no confirmed landmark yet, the landmark search is available (a pinId satisfies only the Naver panel; Kakao verification benefits all four).
+    const canFind = !naverOverride && ((hasCoords && coordsPrimary) || (!hasCoords && /[\uAC00-\uD7A3\u4E00-\u9FFF]/.test(name)) || (!hasCoords && /[A-Za-z]/.test(name))); // fix98 Chinese names (machine-translated) + fix99 English names (queried against Kakao's English index directly) can also trigger the search
+    els.findBtn.style.display = canFind ? '' : 'none';
+    { const wn = $('findWaitNote'); if(wn) wn.style.display = (canFind && findBtnMode !== 'retry') ? '' : 'none'; }
+    // FIX fix92: user's rule "when Step 1 completes, Step 3 starts automatically" - once parsing completes (autoFindArmed) and a landmark search is possible, auto-search once;
+    // keyed by the input content to prevent repeats (the same input auto-searches only once); manual typing / language switches do not arm or trigger it; on failure the button stays for a manual retry.
+    if (autoFindArmed && canFind) {
+      const key = [els.name.value || '', els.lat.value || '', els.lng.value || '', currentPinId || ''].join('|');
+      if (key !== autoFindKey) { autoFindKey = key; autoFindArmed = false; findNearestNaver(); }
+    }
+  }
+  // FIX fix104 (user-approved): regions with no verification source (jp/other) show the Google Plus Code helper - Google offers no callback mechanism for ordinary web pages,
+  // so the flow is semi-automatic: the button opens a Google Maps web search (name first, otherwise coordinates) and the user copies the Plus Code from the info panel and pastes it back into Step 1 to decode.
+  // FIX fix105 (user-approved): TomTom regions (tt) show it too - TomTom has long-tail gaps for small independent shops (a breakfast shop in Pingzhen District, Taoyuan that Google has but TomTom does not),
+  // so the helper sits after the API candidates as an aid; Korea's Kakao coverage is complete, so it stays hidden there to avoid noise.
+  { const pb = $('plusHelpBtn'), ph = $('plusHelpHint');
+    if(pb){
+      const reg = hasCoords ? regionOf(lat, lng) : '';
+      const showPlus = hasCoords && coordsPrimary && !naverOverride && (reg === 'jp' || reg === 'other' || reg === 'tt');
+      pb.style.display = showPlus ? '' : 'none';
+      pb.textContent = T('plusHelpBtn');
+      if(ph){ ph.style.display = showPlus ? '' : 'none'; ph.textContent = T('plusHelpHint'); }
+      if(showPlus) pb.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(hasName ? name : (latS + ',' + lngS));
+    } }
+  els.naverApp.textContent = (hasName ? T('monoNameSearch',{u:nAppName}) : '') + (hasCoords ? (hasName ? '\n' : '') + T('coordPinLine',{u:nAppCoord}) : '');
+  if(els.naverAppAndroidText) els.naverAppAndroidText.textContent = (hasName ? T('monoNameSearch',{u:nAppAndroidName}) : '') + (hasCoords ? (hasName ? '\n' : '') + T('coordPinLine',{u:nAppAndroidCoord}) : '');
+  // FIX fix22: coordinates first - valid coordinates -> coordinates; no coordinates -> pinId; neither -> "ID not found", never a name search. Name search is only the fallback button (naverNameFallback).
+  const nPlace = currentPinId ? 'https://map.naver.com/p/entry/place/'+currentPinId : '';
+  if(coordsPrimary){
+    // FIX fix50: when the confirmed item is a place (kind='place'), the web button opens the place-name page instead - a coordinate link in Naver only centres / vaguely marks,
+    // and the user reported "I picked the right place name, but Naver opened with no pin". The place name is Kakao's Korean original; a Naver search hits that place's panel + red pin directly.
+    // Address candidates (kind='address') and the unconfirmed state keep the coordinate link (the address is itself the marker; fix47 field-verified a blue pin + address panel).
+    // FIX fix102: the name page applies only to Korean original names (fix50's hit premise); non-Korean titles (international TomTom candidates) fall back to the coordinate link,
+    // avoiding a repeat of fix48's field problem (a non-Korean name re-resolved by Naver to a different place).
+    const confirmedPlaceWeb = (naverOverride && naverOverride.kind === 'place' && naverOverride.title && /[\uAC00-\uD7A3]/.test(naverOverride.title))
+      ? 'https://map.naver.com/p/search/' + encodeURIComponent(naverOverride.title) : '';
+    els.naverOpen.href = confirmedPlaceWeb || nCoordWeb || '#';
+    els.naverOpen.textContent = naverOverride ? T('nOpenConfirmed') : T('nOpenCoord');
+  }else if(nPlace){
+    els.naverOpen.href = nPlace;
+    els.naverOpen.textContent = T('nOpenId');
+  }else{
+    els.naverOpen.href = '#';
+    els.naverOpen.textContent = T('idNotFound');
+  }
+  if(els.naverCoordOpen){ els.naverCoordOpen.href = nCoordWeb || '#'; els.naverCoordOpen.style.display = hasCoords ? '' : 'none'; }
+  // FIX fix21+22: the Naver App button must not be a dead button either - coordinates first: valid coordinates -> coordinate pin; no coordinates but a pinId -> place;
+  // no coordinates and no pinId but a name -> name-search fallback (nmap://search / intent://search, clearly labelled) so the app can open; only when all three are absent does it show ID not found.
+  const naverAppMain = coordsPrimary ? nAppCoord : (nPlace || (hasName ? nAppName : '#'));
+  const naverAppMainLabel = coordsPrimary ? T('appIOSPin') : (nPlace ? T('appIOSId') : (hasName ? T('appIOSNameFb') : T('appIOSMiss')));
+  const naverAppAndroidMain = coordsPrimary ? nAppAndroidCoord : (nPlace || (hasName ? nAppAndroidName : '#'));
+  const naverAppAndroidLabel = coordsPrimary ? T('appAndroidPin') : (nPlace ? T('appAndroidId') : (hasName ? T('appAndroidNameFb') : T('appAndroidMiss')));
+  if(els.naverAppOpen){ els.naverAppOpen.href = naverAppMain; els.naverAppOpen.textContent = naverAppMainLabel; }
+  if(els.naverAppAndroid){ els.naverAppAndroid.href = naverAppAndroidMain; els.naverAppAndroid.textContent = naverAppAndroidLabel; }
+  if(els.naverNameFallback){
+    if(hasName && !nPlace && !coordsPrimary){
+      els.naverNameFallback.href = nSearch;
+      els.naverNameFallback.style.display = '';
+    }else els.naverNameFallback.style.display = 'none';
+  }
+  // FIX fix30: Yahoo! MAP (Japan) - uses WGS84 lat/lng (same as Google).
+  // FIX fix67: the web link switched to the /place/?lat=&lon=&z= form - browser-verified to show a red pin + coordinate info card at the centre;
+  // the old /?lat=&lon= form only centred, with no pin (verified after a user field report) - retired.
+  // Valid coordinates -> coordinate switch; no coordinates but a name -> name-search fallback (Yahoo Maps search); neither -> coordinates required.
+  const yWeb = coordsPrimary ? 'https://map.yahoo.co.jp/place/?lat='+latS+'&lon='+lngS+'&z=17' : '';
+  // FIX fix100 (user-approved): Uber panel - a universal link pre-fills the drop-off (coordinates + place name + post-confirmation address); pickup uses the current location. No coordinates -> no link (never fabricated).
+  let uberWeb = '';
+  if(coordsPrimary){
+    const uNick = naverOverride ? naverOverride.title : (name || '').split(',')[0].trim();
+    const uAddr = naverOverride ? (naverOverride.roadAddress || naverOverride.address || '') : '';
+    uberWeb = 'https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=' + latS + '&dropoff[longitude]=' + lngS
+      + (uNick ? '&dropoff[nickname]=' + encodeURIComponent(uNick) : '')
+      + (uAddr ? '&dropoff[formatted_address]=' + encodeURIComponent(uAddr) : '');
+  }
+  const yNameWeb = hasName ? 'https://map.yahoo.co.jp/search?q='+encodeURIComponent(name) : '';
+  if(els.yahooLink) els.yahooLink.textContent = yWeb || (hasName ? T('monoNameSearch',{u:yNameWeb}) : '—');
+  if(els.yahooOpen){
+    if(coordsPrimary){ els.yahooOpen.href = yWeb; els.yahooOpen.textContent = T('yOpenCoord'); }
+    else { els.yahooOpen.href = '#'; els.yahooOpen.textContent = T('needCoords'); }
+  }
+  if(els.yahooBadge) els.yahooBadge.textContent = coordsPrimary ? T('coordOk') : T('needCoords');
+  if(els.uberLink) els.uberLink.textContent = uberWeb || '—';
+  if(els.uberOpen){
+    if(coordsPrimary){ els.uberOpen.href = uberWeb; els.uberOpen.textContent = T('uberOpenBtn'); }
+    else { els.uberOpen.href = '#'; els.uberOpen.textContent = T('needCoords'); }
+  }
+  if(els.rideBadge) els.rideBadge.textContent = coordsPrimary ? T('coordOk') : T('needCoords');
+  // FIX fix101 (user-specified: ride-hailing in one block): Kakao T / k.ride publish no prefill format -> the destination text (confirmed landmark's Korean name + road address first; unconfirmed: the longest Korean segment of the name) is copied when the button is tapped.
+  rideDestText = '';
+  if(naverOverride){ rideDestText = naverOverride.title + ((naverOverride.roadAddress || naverOverride.address) ? ' ' + (naverOverride.roadAddress || naverOverride.address) : ''); }
+  else { const segs = (name || '').split(',').map(x => x.trim()).filter(x => /[가-힣]/.test(x)); if(segs.length) rideDestText = segs.sort((a, b) => b.length - a.length)[0]; }
+  if(els.rideDest) els.rideDest.textContent = rideDestText || '—';
+  if(els.yahooNameFallback){
+    if(hasName && !coordsPrimary){ els.yahooNameFallback.href = yNameWeb; els.yahooNameFallback.style.display = ''; }
+    else els.yahooNameFallback.style.display = 'none';
+  }
+  // FIX fix56: Kakao Map - official formats (verified against the apis.map.kakao.com web guide):
+  // Web https://map.kakao.com/link/map/{placeID} or /link/map/{name},{lat},{lng}; App kakaomap://look?p={lat},{lng} (coordinates + marker).
+  // A confirmed Kakao place (naverOverride carrying a place link) opens the place-ID page directly; the ID is taken from place.map.kakao.com/{id}.
+  const kakaoPlaceId = (naverOverride && naverOverride.link) ? ((String(naverOverride.link).match(/place\.map\.kakao\.com\/(\d+)/) || [])[1] || '') : '';
+  const kId = kakaoPlaceId || currentKakaoId;
+  // FIX fix66: the Kakao web coordinate link switched to the official name-free format /link/map/{lat},{lng}.
+  // Field report: when the shared name is romanised, /link/map/{name},{coords} handed to the Kakao App on iPhone
+  // searches by name first (Kakao indexes only Korean original names, so it finds nothing) -> the coordinates were effectively dropped (user report: "Kakao is missing the lat/lng").
+  // The same lesson as fix47: coordinate links carry no place name, so a text search cannot hijack them. The name is used only via the place ID once a place is confirmed.
+  const kWeb = kId ? 'https://map.kakao.com/link/map/' + kId
+    : (coordsPrimary ? 'https://map.kakao.com/link/map/' + latS + ',' + lngS : '');
+  if(els.kakaoLink) els.kakaoLink.textContent = kWeb || '—';
+  if(els.kakaoOpen){
+    if(kWeb){ els.kakaoOpen.href = kWeb; els.kakaoOpen.textContent = kakaoPlaceId ? T('kOpenConfirmed') : (kId ? T('kOpen') : T('kOpenCoord')); }
+    else { els.kakaoOpen.href = '#'; els.kakaoOpen.textContent = T('needCoords'); }
+  }
+  if(els.kakaoBadge) els.kakaoBadge.textContent = kakaoPlaceId ? T('badgeConfirmed') : (coordsPrimary ? T('coordOk') : (kId ? T('badgeId') : T('needCoords')));
+  if(els.kakaoAppOpen){
+    els.kakaoAppOpen.href = coordsPrimary ? 'kakaomap://look?p=' + latS + ',' + lngS : '#';
+    els.kakaoAppOpen.textContent = coordsPrimary ? T('kAppPinIOS') : T('appIOS');
+  }
+  if(els.kakaoAppAndroid){
+    els.kakaoAppAndroid.href = coordsPrimary ? 'intent://look?p=' + latS + ',' + lngS + '#Intent;scheme=kakaomap;package=net.daum.android.map;end' : '#';
+    els.kakaoAppAndroid.textContent = coordsPrimary ? T('kAppPinAndroid') : T('appAndroid');
+  }
+}
+
+function updateFromLatLng(lat,lng,msg,readyOverride,opts){
+  if(syncing) return; syncing=true;
+  if(!(opts&&opts.keepLatLng)){ els.lat.value = fmt(lat,7); els.lng.value = fmt(lng,7); }
+  const [x,y]=wgsToMerc(lng,lat);
+  els.mx.value = fmt(x,2); els.my.value = fmt(y,2);
+  // FIX fix13: coordinates set explicitly (parsed from a link or typed by hand) are treated as belonging to the current place - coordinates take priority.
+  coordsValidForName = true;
+  hasReadyResult = true;
+  readySpec = readyOverride || (els.name.value.trim() ? {k:'readyNamed', v:{name:els.name.value.trim()}} : {k:'readyFound'});
+  syncing=false; updateLinks(); if(msg) setStatus(msg,true);
+}
+function updateFromXY(x,y,msg,readyOverride,opts){
+  if(syncing) return; syncing=true;
+  if(!(opts&&opts.keepXY)){ els.mx.value = fmt(x,2); els.my.value = fmt(y,2); }
+  const [lng,lat]=mercToWgs(x,y);
+  els.lat.value = fmt(lat,7); els.lng.value = fmt(lng,7);
+  coordsValidForName = true;
+  hasReadyResult = true;
+  readySpec = readyOverride || (els.name.value.trim() ? {k:'readyNamed', v:{name:els.name.value.trim()}} : {k:'readyFound'});
+  syncing=false; updateLinks(); if(msg) setStatus(msg,true);
+}
+
+// FIX fix5: an expanded Google /place/ page has no @lat,lng / !3d / !4d either - only
+// the place name (/place/<name>/) + a Plus Code (the 20s8Q7C5RJG+F63 inside data).
+// Both must be parsed, or a user who follows the instructions, expands and pastes back still gets "parse failed".
+function plusCodeDecode(code){
+  // code: e.g. 8Q7C5RJG+F63 -> lat/lng center
+  const ALPH = '23456789CFGHJMPQRVWX';
+  const clean = code.toUpperCase().replace(/\+/g,'').replace(/0/g,'');
+  const pair = clean.slice(0,10), grid = clean.slice(10);
+  let lat = -90, lng = -180, res = 20;
+  for(let i=0;i<pair.length;i+=2){
+    lat += ALPH.indexOf(pair[i]) * res;
+    lng += ALPH.indexOf(pair[i+1]) * res;
+    res /= 20;
+  }
+  const n = grid.length;
+  if(!n) return [lat+0.000125/2, lng+0.000125/2];
+  let latRes = 0.000125/5, lngRes = 0.000125/4;
+  for(const ch of grid){
+    const v = ALPH.indexOf(ch);
+    lat += Math.floor(v/4) * latRes;
+    lng += (v%4) * lngRes;
+    latRes /= 5; lngRes /= 4;
+  }
+  const latCell = 0.000125 / Math.pow(5,n), lngCell = 0.000125 / Math.pow(4,n);
+  return [lat+latCell/2, lng+lngCell/2];
+}
+
+// FIX fix38: a Plus Code represents a rectangular area, not an exact point; the decoded coordinates are the area's centre.
+// Precision must be computed from the full code's total length: a 10-char code is about 14x13 m (centre at most ~9-10 m from the origin),
+// only an 11-char code is about 3x3 m. The old version wrote "about 3 m" for every length, which made users think the parsed coordinates were off.
+function plusCodePrecision(code, centerLat){
+  const digits = code.toUpperCase().replace(/[^23456789CFGHJMPQRVWX]/g,'').length;
+  let latDeg = 0.000125, lngDeg = 0.000125;
+  if(digits <= 10){
+    latDeg = lngDeg = 20 / Math.pow(20, Math.max(0, Math.floor(digits/2)-1));
+  }else{
+    for(let i=10;i<digits;i++){ latDeg /= 5; lngDeg /= 4; }
+  }
+  const heightM = latDeg * 110574;
+  const widthM = lngDeg * 111320 * Math.cos(centerLat * Math.PI/180);
+  return {digits, latDeg, lngDeg, widthM, heightM, maxM: Math.hypot(widthM, heightM)/2};
+}
+function plusCodeNotice(code, centerLat){
+  const p = plusCodePrecision(code, centerLat);
+  return {k:'plusNotice', v:{code, w:Math.round(p.widthM), h:Math.round(p.heightM), m:Math.ceil(p.maxM)}};
+}
+
+// FIX fix39: when one text carries both precise link coordinates and a Plus Code, cross-check them.
+// If the precise coordinates fall outside the Plus Code cell, the two are not the same position and the difference cannot be explained away as cell-centre error.
+// Example: Naver's Myeongdong Gyoja main store 37.5634829,126.9851666 should encode as ...+93; the user-pasted HX7P+92 centre is 10.47 m away,
+// and the precise point lies about 3.7 m east outside the +92 cell - beyond a 10-char code's theoretical maximum centre error of 8.84 m.
+function plusCodeMismatch(text, exactLat, exactLng){
+  if(!text) return null;
+  let shownCode = '', fullCode = '', center = null;
+  const fullMatch = text.match(/\b[23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2,3}\b/i);
+  if(fullMatch){
+    shownCode = fullMatch[0].toUpperCase(); fullCode = shownCode;
+    center = plusCodeDecode(fullCode);
+  }else{
+    const shortMatch = text.match(/\b[23456789CFGHJMPQRVWX]{2,7}\+[23456789CFGHJMPQRVWX]{2,3}\b/i);
+    if(!shortMatch) return null;
+    shownCode = shortMatch[0].toUpperCase();
+    const rec = recoverShortCode(shownCode, exactLat, exactLng);
+    if(!rec) return null;
+    fullCode = rec.full; center = rec.xy;
+  }
+  const p = plusCodePrecision(fullCode, center[0]);
+  const latHalf = p.latDeg/2, lngHalf = p.lngDeg/2;
+  const dLat = exactLat - center[0], dLng = exactLng - center[1];
+  if(Math.abs(dLat) <= latHalf + 1e-12 && Math.abs(dLng) <= lngHalf + 1e-12) return null;
+  const metersPerLat = 110574;
+  const metersPerLng = 111320 * Math.cos(center[0] * Math.PI/180);
+  const distanceM = Math.hypot(dLat * metersPerLat, dLng * metersPerLng);
+  let direction = '', outsideM = 0;
+  if(dLng > lngHalf){ direction = 'dirEast'; outsideM = (dLng - lngHalf) * metersPerLng; }
+  else if(dLng < -lngHalf){ direction = 'dirWest'; outsideM = (-dLng - lngHalf) * metersPerLng; }
+  else if(dLat > latHalf){ direction = 'dirNorth'; outsideM = (dLat - latHalf) * metersPerLat; }
+  else if(dLat < -latHalf){ direction = 'dirSouth'; outsideM = (-dLat - latHalf) * metersPerLat; }
+  const detailSpec = {k:'mismatchDetail', v:{code:shownCode, full:fullCode, dir:T(direction), out:outsideM.toFixed(1), dist:distanceM.toFixed(1), max:p.maxM.toFixed(1)}};
+  return {
+    statusSpec: {k:'mismatchStatus', v:{detail:detailSpec}},
+    readySpec: {k:'readyMismatch', v:{detail:detailSpec}}
+  };
+}
+
+// FIX fix25: apps show only the short Plus Code (e.g. 5RJG+FVG); a short code needs a reference position to decode. Short-code recovery implemented:
+// encode the reference lat/lng into a full code, borrow the prefix for the characters the short code lacks, decode, and if the result is too far from the reference, try the 8 neighbouring cells and take the nearest.
+function plusCodeEncode(lat,lng){
+  const ALPH = '23456789CFGHJMPQRVWX';
+  let la = lat + 90, ln = lng + 180, code = '';
+  let res = 20;
+  for(let i=0;i<5;i++){
+    const laI = Math.floor(la / res), lnI = Math.floor(ln / res);
+    code += ALPH[laI] + ALPH[lnI];
+    la -= laI * res; ln -= lnI * res;
+    res /= 20;
+  }
+  // This helper only supplies the prefix for short-code recovery: it returns the standard 10-char pair code (a ~14 m cell) and is not used as precise coordinates.
+  return code.slice(0,8) + '+' + code.slice(8,10);
+}
+function recoverShortCode(shortCode, refLat, refLng){
+  const ALPH = '23456789CFGHJMPQRVWX';
+  const parts = shortCode.toUpperCase().split('+');
+  if(parts.length !== 2) return null;
+  const before = parts[0], after = parts[1];
+  if(before.length >= 8) return null; // not a short code
+  const missing = 8 - before.length;
+  if(missing % 2 !== 0) return null; // a short code always lacks an even number of characters (2/4/6)
+  const refCode = plusCodeEncode(refLat, refLng);
+  const refBefore = refCode.split('+')[0]; // 8 chars
+  const prefix = refBefore.slice(0, missing);
+  // Candidate: prefix + short code's head + '+' + short code's tail
+  function tryCandidate(pfx){
+    const full = pfx + before + '+' + after;
+    try{ return {full, xy: plusCodeDecode(full)}; }catch(e){ return null; }
+  }
+  let best = tryCandidate(prefix);
+  if(!best) return null;
+  // If the candidate is too far from the reference (more than half the resolution of the missing part), try the 8 neighbouring cells and take the nearest
+  const pairRes = [20, 1, 0.05][missing/2 - 1] || 20; // missing 2 chars -> 20 deg, missing 4 -> 1 deg, missing 6 -> 0.05 deg
+  const dist = (a,b) => Math.hypot(a[0]-refLat, a[1]-refLng);
+  if(dist(best.xy, [refLat, refLng]) > pairRes/2){
+    // Adjust the prefix's last pair (lat/lng each +/-1) and take the one nearest the reference
+    const lastPairIdx = missing - 2;
+    const laCh = prefix[lastPairIdx], lnCh = prefix[lastPairIdx+1];
+    const laI = ALPH.indexOf(laCh), lnI = ALPH.indexOf(lnCh);
+    for(let dla=-1; dla<=1; dla++){
+      for(let dln=-1; dln<=1; dln++){
+        if(dla===0 && dln===0) continue;
+        const nla = laI + dla, nln = lnI + dln;
+        if(nla < 0 || nla >= 20 || nln < 0 || nln >= 20) continue;
+        const newPfx = prefix.slice(0,lastPairIdx) + ALPH[nla] + ALPH[nln] + prefix.slice(lastPairIdx+2);
+        // If the prefix length exceeds missing (due to the slice), truncate to missing
+        const cand = tryCandidate(newPfx.slice(0, missing));
+        if(cand && dist(cand.xy, [refLat, refLng]) < dist(best.xy, [refLat, refLng])) best = cand;
+      }
+    }
+  }
+  return best;
+}
+// Reference coordinates for major Korean cities (for short-code recovery; approximate city centres, for short-code positioning reference only)
+const CITY_REF = [
+  ['金海', '김해', 'gimhae', 35.25, 128.90],
+  ['釜山', '부산', 'busan', 35.18, 129.07],
+  ['首爾', '서울', 'seoul', 37.56, 126.97],
+  ['大邱', '대구', 'daegu', 35.87, 128.60],
+  ['仁川', '인천', 'incheon', 37.45, 126.62],
+  ['光州', '광주', 'gwangju', 35.15, 126.85],
+  ['大田', '대전', 'daejeon', 36.35, 127.38],
+  ['蔚山', '울산', 'ulsan', 35.54, 129.31],
+  ['濟州', '제주', 'jeju', 33.51, 126.52],
+  ['慶州', '경주', 'gyeongju', 35.85, 129.21],
+  ['全州', '전주', 'jeonju', 35.82, 127.15],
+  ['水原', '수원', 'suwon', 37.26, 127.03],
+  ['春川', '춘천', 'chuncheon', 37.87, 127.73],
+  ['麗水', '여수', 'yeosu', 34.76, 127.66],
+  ['浦項', '포항', 'pohang', 36.03, 129.36],
+  ['昌原', '창원', 'changwon', 35.22, 128.68],
+  ['密陽', '밀양', 'miryang', 35.50, 128.73],
+  ['統營', '통영', 'tongyeong', 34.85, 128.42],
+  ['巨濟', '거제', 'geoje', 34.88, 128.62],
+  // FIX fix28: major Taiwan cities (when the user pastes a short code for a Taiwan place, the Korean city table has no reference and it was misjudged as no-reference). Approximate Taiwan city centres, for short-code positioning reference only.
+  ['台北', '타이베이', 'taipei', 25.03, 121.56],
+  ['新北', '신베이', 'new taipei', 25.01, 121.46],
+  ['桃園', '타오위안', 'taoyuan', 24.99, 121.31],
+  ['平鎮', '핑전', 'pingzhen', 24.90, 121.21],
+  ['中壢', '중리', 'zhongli', 24.95, 121.22],
+  ['新竹', '신주', 'hsinchu', 24.80, 120.97],
+  ['苗栗', '먀오리', 'miaoli', 24.56, 120.82],
+  ['台中', '타이중', 'taichung', 24.14, 120.67],
+  ['彰化', '장화', 'changhua', 24.07, 120.54],
+  ['南投', '난터우', 'nantou', 23.91, 120.68],
+  ['雲林', '윈린', 'yunlin', 23.71, 120.54],
+  ['嘉義', '자이', 'chiayi', 23.48, 120.45],
+  ['台南', '타이난', 'tainan', 22.99, 120.21],
+  ['高雄', '가오슝', 'kaohsiung', 22.62, 120.30],
+  ['屏東', '핑둥', 'pingtung', 22.67, 120.48],
+  ['基隆', '지룽', 'keelung', 25.13, 121.74],
+  ['宜蘭', '이란', 'yilan', 24.75, 121.75],
+  ['花蓮', '화롄', 'hualien', 23.99, 121.60],
+  ['台東', '타이둥', 'taitung', 22.75, 121.15],
+  ['澎湖', '펑후', 'penghu', 23.56, 119.56],
+  ['金門', '진먼', 'kinmen', 24.44, 118.32],
+  // FIX fix29: major Japanese cities (when pasting a short code for a Japan place, the Korean+Taiwan tables have no reference and it was misjudged as no-reference).
+  ['東京', '도쿄', 'tokyo', 35.68, 139.69],
+  ['江東', '고토', 'koto', 35.68, 139.82],
+  ['新宿', '신주쿠', 'shinjuku', 35.69, 139.70],
+  ['澀谷', '시부야', 'shibuya', 35.66, 139.70],
+  ['大阪', '오사카', 'osaka', 34.69, 135.50],
+  ['京都', '교토', 'kyoto', 35.01, 135.76],
+  ['名古屋', '나고야', 'nagoya', 35.18, 136.90],
+  ['福岡', '후쿠오카', 'fukuoka', 33.59, 130.40],
+  ['札幌', '삿포로', 'sapporo', 43.06, 141.35],
+  ['仙台', '센다이', 'sendai', 38.26, 140.87],
+  ['廣島', '히로시마', 'hiroshima', 34.38, 132.45],
+  ['橫濱', '요코하마', 'yokohama', 35.44, 139.64],
+  ['神戶', '고베', 'kobe', 34.69, 135.19],
+  ['奈良', '나라', 'nara', 34.68, 135.80],
+  ['沖繩', '오키나와', 'okinawa', 26.21, 127.68],
+  ['日本', '일본', 'japan', 36.20, 138.25],
+];
+
+// FIX fix15: short links actively switch to the ID - the Worker is deployed at map-resolve.map-converter.workers.dev and does HEAD + redirect:manual to obtain the Location.
+// If the Worker code has not yet been replaced with worker.js (still Hello World), it falls back to the manual expansion flow; once the code is in place, automatic parsing takes effect.
+const RESOLVE_WORKER = 'https://map-resolve.map-converter.workers.dev/resolve';
+const PLACE_WORKER = 'https://map-resolve.map-converter.workers.dev/place';
+// FIX fix63: with only a Kakao ID, fetch the place's coordinates from the Worker /place endpoint so Google/Naver can open too (three-way interop).
+let pendingKakaoPlace = null;
+async function resolveShortLink(shortUrl){
+  try{
+    const r = await fetch(RESOLVE_WORKER+'?url='+encodeURIComponent(shortUrl), {signal: toSig(8000)});
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(e){ return null; }
+}
+async function upgradeKakaoId(){
+  const id = currentKakaoId;
+  if(!id) return;
+  let p = (pendingKakaoPlace && pendingKakaoPlace.id === id) ? pendingKakaoPlace : null;
+  pendingKakaoPlace = null;
+  if(!p){
+    try{
+      const r = await fetch(PLACE_WORKER+'?id='+encodeURIComponent(id), {signal: toSig(8000)});
+      const j = await r.json();
+      if(j && isFinite(j.lat) && isFinite(j.lng)) p = j;
+    }catch(e){}
+  }
+  if(!p || currentKakaoId !== id) return;
+  if(p.name && !/[\uAC00-\uD7A3]/.test(els.name.value)) els.name.value = p.name;
+  updateFromLatLng(p.lat, p.lng, T('stKakaoUpgraded',{name: p.name || T('landmarkWord')}));
+}
+function parseInput(){
+  const raw = els.paste.value.trim();
+  hasReadyResult = false; readySpec = null;
+  if(!raw){ updateLinks(); setStatus(T('stEmpty'),false); return; }
+  // FIX fix17: when parsing new input, clear the old IDs first, so a leftover ftid / pinId from the previous place is not misused.
+  currentPinId = ''; currentGoogleId = ''; currentKakaoId = '';
+  // FIX fix40: new input must also clear the previous place's confirmed Naver candidate, to avoid applying it to the new place.
+  naverOverride = null; naverCandidates = [];
+  autoFindArmed = true; // fix92: after this parse completes, if a landmark search is possible, auto-search once (triggered inside updateLinks)
+  inputWasYahoo = /yahoo\.(?:co\.jp|jp)/i.test(raw);
+  if(els.candidateBox) els.candidateBox.hidden = true;
+  const expandBtn = $('expandBtn');
+  // FIX fix6: when a whole share text is pasted ([NAVER Maps] / name / address / short link), a clean URL must be extracted first;
+  // otherwise window.open(whole text) is treated as a relative path and opens a 404 on GitHub Pages.
+  const urlInText = raw.match(/https?:\/\/[^\s]+/);
+  const cleanUrl = urlInText ? urlInText[0].replace(/[）\]】.,;]+$/,'') : raw;
+  // FIX 2026-10-18: a short link itself carries no coordinates and cannot be resolved purely on the front end (CORS + redirect following required).
+  // State that clearly + offer one-tap expansion in a new tab; after expanding, copy the full link from the address bar and paste it back.
+  // Note: the expand button must open cleanUrl, not raw, or pasting a whole share text would 404.
+  // FIX fix61: Kakao share short links (kko.to) are included too (they expand to map.kakao.com/link/map/... or a place link, handled by the fix57 parser).
+  if(/maps\.app\.goo\.gl|goo\.gl\/maps|naver\.me\/|yahoo\.jp\/|kko\.to\//i.test(cleanUrl) && !/[@?].*(\d+\.\d+|!3d|c=)/.test(cleanUrl)){
+    // When a whole share text is pasted, also extract the place name (line 2) so the search links below become usable right away
+    // FIX fix7: say the name was extracted only when it really was extracted this time; otherwise a leftover name from the previous paste would be misreported as this time's.
+    // FIX fix9: app shares are all short URLs; a short link carries no coordinates, so the old coordinates must be cleared,
+    // otherwise the coordinate fields keep the Nampo-dong default and the "coordinate pin" button would wrongly open Nampo-dong.
+    const lines = raw.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+    let nameLine = lines.find(s=>!/^\[NAVER|^\[Google|https?:\/\//i.test(s) && !/釜山|부산|市|区|洞|동|路|로|街|道/.test(s));
+    if(nameLine) nameLine = nameLine.replace(/^\[(KakaoMap|카카오맵)\]\s*/,'').trim() || nameLine;
+    // FIX fix10: a share text may be pasted as a single line (newlines lost), so the line-based search above may miss the name.
+    // Fallback: strip the [NAVER Maps] tag, the URL and the address part from the whole text; what remains is the place name.
+    if(!nameLine){
+      let one = raw.replace(/\[NAVER Maps\]|\[Google Maps\]|\[KakaoMap\]|\[카카오맵\]/gi,' ').replace(/https?:\/\/[^\s]+/g,' ').replace(/\s+/g,' ').trim();
+      // The address usually starts at a city/district/road marker character (Busan / city / district / street / road ...); cut the address and everything after it
+      const addrIdx = one.search(/釜山|부산|市|区|洞|동|路|로|街|道/);
+      if(addrIdx > 0) one = one.slice(0, addrIdx).trim();
+      if(one && one.length >= 2 && one.length <= 60) nameLine = one;
+    }
+    let newlyExtracted = false;
+    if(nameLine){ els.name.value = nameLine; newlyExtracted = true; }
+    els.lat.value=''; els.lng.value=''; els.mx.value=''; els.my.value='';
+    coordsValidForName=false;
+    // FIX fix10: updateLinks() must be called unconditionally, otherwise with an empty name the buttons keep the Nampo-dong default values.
+    updateLinks();
+    // FIX fix14: short links actively switch to the ID - first try the Worker auto-resolve (taking the pinId + coordinates from the Location),
+    // on success re-parse directly from the expanded full link with ID/coordinates filled in automatically; if the Worker is not deployed or fails, fall back to the manual expansion flow.
+    setStatus(T('stWorking'),false);
+    if(expandBtn){ expandBtn.style.display=''; expandBtn.onclick=()=>{ window.open(cleanUrl,'_blank','noopener'); }; }
+    resolveShortLink(cleanUrl).then(j=>{
+      const loc = j && j.location;
+      if(loc){
+        if(j.place && isFinite(j.place.lat) && isFinite(j.place.lng)) pendingKakaoPlace = j.place;
+        // FIX fix39: if the original share text also carries a Plus Code, keep it when expanding the short link,
+        // so that after re-parsing it can be cross-checked against the precise link coordinates; overwriting it would destroy the mismatch evidence.
+        const plusInRaw = raw.match(/\b[23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2,3}\b/i) || raw.match(/\b[23456789CFGHJMPQRVWX]{2,7}\+[23456789CFGHJMPQRVWX]{2,3}\b/i);
+        els.paste.value = loc + (plusInRaw && !loc.includes(plusInRaw[0]) ? '\n'+plusInRaw[0] : '');
+        parseInput();
+      }else{
+        setStatus(T('stAutoFail')+(newlyExtracted ? T('stNameFoundSuffix',{name:els.name.value}) : ''),false);
+      }
+    });
+    return;
+  }
+  if(expandBtn) expandBtn.style.display='none';
+  // FIX fix11: auto-converting a non-Korean link to the Korean version - the front end cannot "fetch the Korean original name" (the Korean name lives only on the Naver place page, blocked by CORS; machine-translating place names is unreliable).
+  // What is possible: take the pinId from the redirect link (a language-independent place ID) and generate a place link that opens the correct place directly with no search at all, avoiding the translated-name-not-found trap.
+  // If the title contains no Korean, state clearly that it is a translated name and that the Korean original must be confirmed by opening the place link.
+  const pinMatch = raw.match(/[?&]pinId\s*=\s*(\d+)/i) || raw.match(/\/p\/entry\/place\/(\d+)/i);
+  if(pinMatch) currentPinId = pinMatch[1];
+  // FIX fix17: extract the Google ftid (Google's place ID), otherwise a ?q= link would be misjudged as "no ID" and fall back to a name search.
+  const ftidMatch = raw.match(/[?&]ftid\s*=\s*([^&]+)/i);
+  if(ftidMatch){ try{ currentGoogleId = decodeURIComponent(ftidMatch[1]); }catch(e){ currentGoogleId = ftidMatch[1]; } }
+  // FIX fix57: extract the Kakao place ID (a place link or link/map/{pure number}).
+  const kakaoIdMatch = raw.match(/place\.map\.kakao\.com\/(\d+)/i) || raw.match(/map\.kakao\.com\/link\/map\/(\d+)(?:[?#]|$)/i) || raw.match(/applink\.map\.kakao\.com\/place\?[^\s]*?\bid=(\d+)/i);
+  if(kakaoIdMatch) currentKakaoId = kakaoIdMatch[1];
+  // FIX fix6: a Naver redirect URL from an expanded short link itself carries coordinates + a name:
+  // e.g. map.naver.com/?title=<place name>&pinId=...&lng=129.0972166&lat=35.1235958
+  // The parser previously did not recognise separate ?lat= / ?lng= parameters and misjudged it as a parse failure.
+  const latParam = raw.match(/[?&]lat\s*=\s*(-?\d+(?:\.\d+)?)/i);
+  // FIX fix33: Yahoo Maps uses lon= (not lng=): map.yahoo.co.jp/place?gid=...&lat=35.63367&lon=139.79152
+  const lngParam = raw.match(/[?&](?:lng|lon)\s*=\s*(-?\d+(?:\.\d+)?)/i);
+  if(latParam && lngParam){
+    const la = parseFloat(latParam[1]), ln = parseFloat(lngParam[1]);
+    if(Math.abs(la)<=90 && Math.abs(ln)<=180){
+      const tm = raw.match(/[?&]title\s*=\s*([^&]+)/i);
+      if(tm){ try{ els.name.value = decodeURIComponent(tm[1]); }catch(e){} }
+      const isKorean = /[\uAC00-\uD7A3]/.test(els.name.value);
+      const pinNote = currentPinId ? T('pinNote',{id:currentPinId}) : '';
+      const langNote = (!isKorean && els.name.value) ? T('nonKoreanNote') : '';
+      const mismatch = plusCodeMismatch(raw, la, ln);
+      // FIX fix68: instant Yahoo link note (user's instruction: fold the Yahoo mobile-share deviation into the explanation): a mobile share carries the map-centre coordinates, not the pin - measured deviation about 82 m.
+      const yahooNote = /yahoo\.(?:co\.jp|jp)/i.test(raw) ? T('yahooShareNote') : '';
+      updateFromLatLng(la, ln, T('stParsed',{rest:(els.name.value||'')+pinNote+langNote+(mismatch ? ' '+specText(mismatch.statusSpec) : '')+yahooNote}), mismatch ? mismatch.readySpec : undefined);
+      return;
+    }
+  }
+  // FIX fix57: Kakao link input - map.kakao.com/link/map/{name},{lat},{lng} or /link/map/{lat},{lng} (name optional);
+  // and the app link kakaomap://look?p={lat},{lng}. The name segment may contain commas: take the last two segments as the coordinates and join the rest back into the name.
+  const km = raw.match(/map\.kakao\.com\/link\/map\/([^/?#]+)/i);
+  if(km){
+    let seg = km[1]; try{ seg = decodeURIComponent(seg); }catch(e){}
+    const parts = seg.split(',');
+    const kla = parseFloat(parts[parts.length-2]), kln = parseFloat(parts[parts.length-1]);
+    if(parts.length >= 2 && isFinite(kla) && isFinite(kln) && Math.abs(kla) <= 90 && Math.abs(kln) <= 180){
+      const kName = parts.slice(0, parts.length-2).join(',').trim();
+      if(kName && !/^[\d.\s-]+$/.test(kName)) els.name.value = kName;
+      const mismatch = plusCodeMismatch(raw, kla, kln);
+      updateFromLatLng(kla, kln, T('stKakaoCoord') + (mismatch ? ' ' + specText(mismatch.statusSpec) : ''), mismatch ? mismatch.readySpec : undefined);
+      return;
+    }
+  }
+  const kLook = raw.match(/kakaomap:\/\/look\?p=(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i);
+  if(kLook){
+    updateFromLatLng(parseFloat(kLook[1]), parseFloat(kLook[2]), T('stKakaoApp'));
+    return;
+  }
+  // Naver c= : c=14364073,4177191  (allow spaces)
+  let m = raw.match(/c\s*=\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i);
+  if(m){
+    const x=parseFloat(m[1]), y=parseFloat(m[2]);
+    if(Math.abs(x)<=20037508.34 && Math.abs(y)<=20037508.34){
+      const [mismatchLng,mismatchLat] = mercToWgs(x,y);
+      const mismatch = plusCodeMismatch(raw, mismatchLat, mismatchLng);
+      updateFromXY(x,y,T('stNaverC')+(mismatch ? ' '+specText(mismatch.statusSpec) : ''), mismatch ? mismatch.readySpec : undefined);
+      return;
+    }
+  }
+  // FIX fix51: /place/<name>/ is the standard Google place-link format; the name must be captured before the coordinate branch returns,
+  // otherwise the names in /place/<name>/@coords and /place/<name>/data=!3d!4d links are dropped (caught by matrix K9: empty name field, nothing for the candidate box to compare against).
+  const googlePlaceName = (()=>{ const pm2 = raw.match(/\/place\/([^\/\?#]+)/); if(!pm2) return ''; try{ const dn = decodeURIComponent(pm2[1].replace(/\+/g,' ')); return (dn && !/^[\d.,\s-]+$/.test(dn) && !/^data=/i.test(dn)) ? dn : ''; }catch(e){ return ''; } })();
+  // Google place data: !3d lat !4d lng  (expanded share links often use this, not @lat,lng)
+  // Also handle reversed order just in case.
+  let m3 = raw.match(/!3d(-?\d+(?:\.\d+)?)/), m4 = raw.match(/!4d(-?\d+(?:\.\d+)?)/);
+  if(m3 && m4){
+    const lat = parseFloat(m3[1]), lng = parseFloat(m4[1]);
+    if(Math.abs(lat)<=90 && Math.abs(lng)<=180){
+      if(googlePlaceName) els.name.value = googlePlaceName;
+      const mismatch = plusCodeMismatch(raw, lat, lng);
+      updateFromLatLng(lat,lng,T('stGoogleData')+(mismatch ? ' '+specText(mismatch.statusSpec) : ''), mismatch ? mismatch.readySpec : undefined);
+      return;
+    }
+  }
+  // Google @lat,lng  or  ?q=lat,lng / ?query=lat,lng / api=1&query=lat,lng / ?ll= / ?center= / ?destination=
+  m = raw.match(/@(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+  if(m){
+    const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+    if(googlePlaceName) els.name.value = googlePlaceName;
+    const mismatch = plusCodeMismatch(raw, lat, lng);
+    updateFromLatLng(lat,lng,T('stGoogleAt')+(mismatch ? ' '+specText(mismatch.statusSpec) : ''), mismatch ? mismatch.readySpec : undefined);
+    return;
+  }
+  m = raw.match(/[?&](?:q|query|ll|center|destination|saddr|daddr)\s*=\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i);
+  if(m){
+    const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+    const mismatch = plusCodeMismatch(raw, lat, lng);
+    updateFromLatLng(lat,lng,T('stGoogleQ')+(mismatch ? ' '+specText(mismatch.statusSpec) : ''), mismatch ? mismatch.readySpec : undefined);
+    return;
+  }
+  // FIX fix8: a Google goo.gl expansion maps.google.com?q=<name+address> (not coordinates):
+  // e.g. ?q=South Korea Gyeongsangnam-do, Miryang-si, ... Samnangjin Eco-Cultural Park&ftid=...
+  // FIX fix17: extract the ftid at the same time (the Google ID); the Google main button uses ID search, never a name search.
+  const qText = raw.match(/[?&](?:q|query)\s*=\s*([^&]+)/i);
+  if(qText){
+    let qDec = '';
+    try{ qDec = decodeURIComponent(qText[1].replace(/\+/g,' ')); }catch(e){ qDec = qText[1]; }
+    if(qDec && qDec.length>1 && !/^[\d.,\s-]+$/.test(qDec)){
+      els.name.value = qDec;
+      // FIX fix19: this link has no coordinates; the old coordinates in the fields (the Nampo default) are leftovers and must be cleared + marked invalid,
+      // otherwise the Naver main button would misuse the leftover Nampo coordinates as "the coordinates", and the X/Y fields would wrongly show Nampo values. With no ID found, the main button shows "ID not found" and only the fallback button shows the name search.
+      coordsValidForName = false;
+      els.lat.value=''; els.lng.value=''; els.mx.value=''; els.my.value='';
+      hasReadyResult = true;
+      readySpec = currentGoogleId ? {k:'readyNameGoogle', v:{name:qDec}} : {k:'readyNameFallback', v:{name:qDec}};
+      if(currentGoogleId) setStatus(T('stNameIdOk',{name:qDec}),true);
+      else setStatus(T('stNameNoId',{name:qDec}),true);
+      updateLinks(); return;
+    }
+  }
+  // Bare "lat,lng" — assume Google order lat,lng
+  // FIX fix35: the Google Maps App's "copy lat/lng" produces a parenthesised format "(25.033524, 121.564604)"; the old regex required digits at both ends, so the parentheses broke parsing. Now allows leading/trailing parentheses.
+  m = raw.match(/^\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)?$/);
+  if(m){
+    const a=parseFloat(m[1]), b=parseFloat(m[2]);
+    if(Math.abs(a)<=90 && Math.abs(b)<=180){ updateFromLatLng(a,b,T('stLatLng')); return; }
+    // FIX fix46: only out-of-range lat/lng values can be Naver X,Y (in metres); but two numbers both <10000 look like no real X/Y
+    // (the old logic treated 999,999 as X/Y and produced a phantom pin near 0,0, and never checked latitude <= 90, so 95,100 was also accepted by mistake).
+    if(Math.abs(a)>=10000 || Math.abs(b)>=10000){ updateFromXY(a,b,T('stXY')); return; }
+    coordsValidForName=false; els.lat.value=''; els.lng.value=''; els.mx.value=''; els.my.value='';
+    setStatus(T('stBadNums'),false);
+    updateLinks(); return;
+  }
+  // Naver / Google place search with a name: use it as name
+  // e.g. map.naver.com/p/search/xxx  or google .../search/xxx
+  // Skip if it looks like "lat,lng" (already handled above, and Naver search with coords returns No results)
+  m = raw.match(/\/p\/search\/([^\/?#]+)/);
+  if(m){
+    const decoded = decodeURIComponent(m[1].replace(/\+/g,' '));
+    if(!/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(decoded)){
+      els.name.value = decoded; coordsValidForName = false; els.lat.value=''; els.lng.value=''; els.mx.value=''; els.my.value=''; hasReadyResult = true; readySpec = {k:'readyNameFallback', v:{name:decoded}}; setStatus(T('stSearchName'),true); updateLinks(); return;
+    }
+  }
+  // Google /place/<name>/ expanded link: extract the name + decode the Plus Code
+  // Example: google.com/maps/place/<Busan Gimhae Lotte Hotel, Korean name>/data=...!20s8Q7C5RJG+F63...
+  // Note: this link form has no @lat,lng / !3d / !4d and was previously misjudged as a parse failure.
+  const decodedRaw = (()=>{ try{ return decodeURIComponent(raw); }catch(e){ return raw; } })();
+  let placeName = null;
+  const pm = decodedRaw.match(/\/place\/([^\/\?#]+)/);
+  if(pm){
+    try{
+      const dn = decodeURIComponent(pm[1].replace(/\+/g,' '));
+      if(dn && !/^[\d.,\s-]+$/.test(dn) && !/^data=/i.test(dn)) placeName = dn;
+    }catch(e){}
+  }
+  // FIX fix25: apps show only the short Plus Code (e.g. 5RJG+FVG). A short code needs a reference position to recover: first look for a city name in the pasted text (Gimhae/Busan/Seoul...) as the reference;
+  // if there is no city name but the page already has coordinates, use those as the reference; only when neither exists, refuse and ask the user to supply a reference position.
+  const shortPcm = decodedRaw.match(/\b[23456789CFGHJMPQRVWX]{2,7}\+[23456789CFGHJMPQRVWX]{2,3}\b/);
+  if(shortPcm && !decodedRaw.match(/\b[23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2,3}\b/)){
+    if(placeName) els.name.value = placeName;
+    let ref = null, refLabel = '';
+    const lowerRaw = decodedRaw.toLowerCase();
+    for(const [zh, ko, en, rla, rln] of CITY_REF){
+      if(decodedRaw.includes(zh) || decodedRaw.includes(ko) || lowerRaw.includes(en)){ ref = [rla, rln]; refLabel = (LANG === 'zh' ? zh : en); break; }
+    }
+    if(!ref && els.lat.value && els.lng.value){
+      const rla = parseFloat(els.lat.value), rln = parseFloat(els.lng.value);
+      if(isFinite(rla) && isFinite(rln)) { ref = [rla, rln]; refLabel = T('pageCoordRef'); }
+    }
+    if(ref){
+      const rec = recoverShortCode(shortPcm[0], ref[0], ref[1]);
+      if(rec){
+        const notice = plusCodeNotice(rec.full, rec.xy[0]);
+        updateFromLatLng(rec.xy[0], rec.xy[1], T('stShortCode',{code:shortPcm[0], ref:refLabel, full:rec.full}), {k:'readyPlusApprox', v:{notice}});
+        return;
+      }
+    }
+    // No reference to recover from -> refuse; never produce wrong coordinates (fix23/24 logic).
+    coordsValidForName = false;
+    els.lat.value=''; els.lng.value=''; els.mx.value=''; els.my.value='';
+    setStatus(T('stNeedCity'),false);
+    updateLinks(); return;
+  }
+  // Plus Code: 8Q7C5RJG+F63 (full code) - appears in data as 20s8Q7C5RJG+F63
+  const pcm = decodedRaw.match(/([23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2,3})/);
+  if(pcm){
+    const [clat, clng] = plusCodeDecode(pcm[1]);
+    if(placeName) els.name.value = placeName;
+    const notice = plusCodeNotice(pcm[1], clat);
+    const sourceText = placeName ? T('stPlusSrcName',{name:placeName, code:pcm[1]}) : T('stPlusSrc',{code:pcm[1]});
+    updateFromLatLng(clat, clng, sourceText+T('approxTail'), {k:'readyPlusApprox', v:{notice}});
+    return;
+  }
+  if(placeName){
+    els.name.value = placeName;
+    coordsValidForName = false;
+    els.lat.value=''; els.lng.value=''; els.mx.value=''; els.my.value='';
+    hasReadyResult = true;
+    readySpec = {k:'readyNameFallback', v:{name:placeName}};
+    setStatus(T('stPlaceNameOnly',{name:placeName}),true);
+    updateLinks(); return;
+  }
+  // FIX fix46: ID-only links (Naver /p/entry/place/{id}, Google ?ftid=) - the ID was already extracted earlier;
+  // the old logic reached this point showing only "cannot parse" and never called updateLinks(), so the buttons stayed on the previous place's links.
+  if(currentPinId || currentGoogleId || currentKakaoId){
+    coordsValidForName = false;
+    els.lat.value=''; els.lng.value=''; els.mx.value=''; els.my.value='';
+    hasReadyResult = true;
+    readySpec = {k:'readyIdOnly'};
+    setStatus(T('stIdOnlyBase')+(currentPinId ? T('stIdNaver',{id:currentPinId}) : '')+(currentGoogleId ? T('stIdGoogle') : '')+(currentKakaoId ? T('stIdKakao',{id:currentKakaoId}) : '')+((currentPinId && !/[\uAC00-\uD7A3]/.test(els.name.value)) ? T('stIdGuide') : ''),true);
+    updateLinks();
+    // FIX fix63: a Kakao ID can be topped up with coordinates via the Worker (public place-page data); on success it upgrades to all three maps opening.
+    if(currentKakaoId) upgradeKakaoId();
+    return;
+  }
+  // FIX fix46: a bare place name as text (no link) - treat it as a name input and clear the old coordinates (the fix18/19 spirit);
+  // the old logic only reported "cannot parse" and left the previous place's coordinates and buttons in place.
+  if(!/https?:\/\//i.test(raw) && raw.length>=2 && raw.length<=60 && !/^[\d.,\s+\-()]+$/.test(raw)){
+    els.name.value = raw;
+    coordsValidForName = false;
+    els.lat.value=''; els.lng.value=''; els.mx.value=''; els.my.value='';
+    hasReadyResult = true;
+    readySpec = {k:'readyNameFallback', v:{name:raw}};
+    setStatus(T('stNamePlain',{name:raw}),true);
+    updateLinks(); return;
+  }
+  setStatus(T('stUnknown'),false);
+}
+
+els.lat.addEventListener('input',()=>{ const la=parseFloat(els.lat.value), ln=parseFloat(els.lng.value); if(isFinite(la)&&isFinite(ln)&&Math.abs(la)<=90&&Math.abs(ln)<=180) updateFromLatLng(la,ln,undefined,undefined,{keepLatLng:true}); });
+els.lng.addEventListener('input',()=>{ const la=parseFloat(els.lat.value), ln=parseFloat(els.lng.value); if(isFinite(la)&&isFinite(ln)&&Math.abs(la)<=90&&Math.abs(ln)<=180) updateFromLatLng(la,ln,undefined,undefined,{keepLatLng:true}); });
+els.mx.addEventListener('input',()=>{ const x=parseFloat(els.mx.value), y=parseFloat(els.my.value); if(isFinite(x)&&isFinite(y)&&Math.abs(x)<=R&&Math.abs(y)<=R) updateFromXY(x,y,undefined,undefined,{keepXY:true}); });
+els.my.addEventListener('input',()=>{ const x=parseFloat(els.mx.value), y=parseFloat(els.my.value); if(isFinite(x)&&isFinite(y)&&Math.abs(x)<=R&&Math.abs(y)<=R) updateFromXY(x,y,undefined,undefined,{keepXY:true}); });
+// fix41: while typing, never write back into the field being edited (intermediate values would be mangled by formatting); normalise the display only when leaving the field (change)
+els.lat.addEventListener('change',()=>{ const la=parseFloat(els.lat.value), ln=parseFloat(els.lng.value); if(isFinite(la)&&isFinite(ln)&&Math.abs(la)<=90&&Math.abs(ln)<=180) updateFromLatLng(la,ln); });
+els.lng.addEventListener('change',()=>{ const la=parseFloat(els.lat.value), ln=parseFloat(els.lng.value); if(isFinite(la)&&isFinite(ln)&&Math.abs(la)<=90&&Math.abs(ln)<=180) updateFromLatLng(la,ln); });
+els.mx.addEventListener('change',()=>{ const x=parseFloat(els.mx.value), y=parseFloat(els.my.value); if(isFinite(x)&&isFinite(y)&&Math.abs(x)<=R&&Math.abs(y)<=R) updateFromXY(x,y); });
+els.my.addEventListener('change',()=>{ const x=parseFloat(els.mx.value), y=parseFloat(els.my.value); if(isFinite(x)&&isFinite(y)&&Math.abs(x)<=R&&Math.abs(y)<=R) updateFromXY(x,y); });
+els.name.addEventListener('input',()=>{ coordsValidForName=false; hasReadyResult=false; readySpec=null; updateLinks();
+  // FIX fix93: in the 2026-10-25 four-provider link field test, the only case that did not auto-start was "ID only, no coordinates, no name" - nothing to search with.
+  // After the user follows the guidance and types the Korean original name, auto-start Step 3 after an 800 ms pause (no extra button tap needed); do not trigger when coordinates exist / a landmark is confirmed / the list is open.
+  clearTimeout(nameAutoTimer);
+  nameAutoTimer = setTimeout(()=>{
+    const nm = els.name.value || '';
+    if(!isFinite(parseFloat(els.lat.value)) && currentPinId && /[\uAC00-\uD7A3]/.test(nm) && els.candidateBox && els.candidateBox.hidden){
+      const key = 'name|' + nm + '|' + currentPinId;
+      if(key !== autoFindKey){ autoFindKey = key; findNearestNaver(); }
+    }
+  }, 800);
+});
+// FIX fix36: senior mode - once the user pastes content into the box it starts automatically, no second button to find; the clipboard button reads and converts within the same gesture.
+els.paste.addEventListener('paste',()=>{ window.setTimeout(parseInput,80); });
+// FIX fix40: find the nearest Naver place (official local search API via the Worker; no place ID - only candidate coordinates are available)
+function distanceMeters(aLat,aLng,bLat,bLng){
+  const p1=aLat*Math.PI/180, p2=bLat*Math.PI/180;
+  const dp=(bLat-aLat)*Math.PI/180, dl=(bLng-aLng)*Math.PI/180;
+  const h=Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  return 2*6371000*Math.asin(Math.sqrt(h));
+}
+function normalizeNaverCoord(v){
+  let n = parseFloat(v);
+  if(!isFinite(n)) return NaN;
+  if(Math.abs(n) > 1000) n = n/1e7; // the local search API's mapx/mapy are integer strings with 7 implied decimal places
+  return n;
+}
+// FIX fix52: place-name machine translation (Korean->English) is for identification reference only; results are cached, failures return an empty string silently.
+// FIX fix53: now called directly from the page (the user's device IP) - when relayed through the Worker, the Cloudflare egress IP was rate-limited
+// with 429 by every free translation endpoint (fix52d diagnosis: both MyMemory and Google hosts returned 429). Both endpoints send Access-Control-Allow-Origin: *,
+// so the browser can call them directly; source order gtx -> MyMemory.
+const translateCache = {};
+// FIX fix54: dual sources side by side (user asked to add Google MT) - call both Google and MyMemory; each failure returns '';
+// display shows the Google line and the MyMemory line (skipped when identical to Google), with sources labelled for comparison.
+function translateBoth(title){
+  if(Object.prototype.hasOwnProperty.call(translateCache, title)) return Promise.resolve(translateCache[title]);
+  const safe = p => p.catch(() => '');
+  const gtxP = fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=ko&tl=en&dt=t&q=' + encodeURIComponent(title), { signal: toSig(6000) })
+    .then(r => r.ok ? r.json() : null)
+    .then(gj => { const t = gj && Array.isArray(gj[0]) ? gj[0].map(s => (s && s[0]) || '').join('').trim() : ''; return t || ''; });
+  const mmP = fetch('https://api.mymemory.translated.net/get?langpair=ko%7Cen&q=' + encodeURIComponent(title), { signal: toSig(6000) })
+    .then(r => r.ok ? r.json() : null)
+    .then(mj => { const t = (mj && mj.responseData && mj.responseData.translatedText || '').trim(); return (t && !/MYMEMORY|WARNING|QUOTA|INVALID/i.test(t)) ? t : ''; });
+  return Promise.all([safe(gtxP), safe(mmP)]).then(([g, m]) => { const v = { gtx: g, mm: m }; translateCache[title] = v; return v; });
+}
+// FIX fix59: landmark confirmation is its own section (fix58 had one copy in each of the Naver/Kakao panels; the user re-decided: one shared section, searched only once).
+
+// FIX fix97 (user asked: "if everything auto-starts, is the button still needed?"): the button stays for retries and for re-searching after a manual name edit, but while the list is open it shrinks to a low-key small button so it does not fight the results.
+function setFindBtnMode(m){
+  findBtnMode = m;
+  const b = els.findBtn; if(!b) return;
+  if(m === 'retry'){
+    b.textContent = T('findBtnRetry');
+    b.style.background = '#eef1f4'; b.style.color = '#33475b'; b.style.border = '1.5px solid #b9c6d2'; b.style.fontSize = '16px'; b.style.minHeight = '44px';
+    const wn = $('findWaitNote'); if(wn) wn.style.display = 'none';
+  } else {
+    b.textContent = T('findBtn');
+    b.style.background = ''; b.style.color = ''; b.style.border = ''; b.style.fontSize = ''; b.style.minHeight = '';
+  }
+}
+function hideCandidateBoxes(){ if(els.candidateBox) els.candidateBox.hidden = true; setFindBtnMode('primary'); }
+// FIX fix77: candidates became a list (user's spec: 1. address 2. place name 3. category) - everything listed at once, tap a row to confirm;
+// no more flipping through places one by one. Addresses are always the first section, place names the second; place names (coordinate mode) are grouped by Kakao category, sorted by distance within each group.
+const CAT_GLOSS = {
+  '음식점': {zh:'餐廳', en:'Restaurant', id:'Restoran'},
+  '카페': {zh:'咖啡廳', en:'Café', id:'Kafe'},
+  '대형마트': {zh:'大型超市', en:'Hypermarket', id:'Hipermarket'},
+  '편의점': {zh:'便利商店', en:'Convenience store', id:'Minimarket'},
+  '숙박': {zh:'住宿', en:'Accommodation', id:'Penginapan'},
+  '관광명소': {zh:'景點', en:'Attraction', id:'Objek wisata'},
+  '지하철역': {zh:'地鐵站', en:'Subway station', id:'Stasiun bawah tanah'},
+  '주차장': {zh:'停車場', en:'Parking', id:'Parkir'},
+  '쇼핑': {zh:'購物', en:'Shopping', id:'Belanja'},
+  '시장': {zh:'市場', en:'Market', id:'Pasar'},
+  '병원': {zh:'醫院', en:'Hospital', id:'Rumah sakit'},
+  '약국': {zh:'藥局', en:'Pharmacy', id:'Apotek'},
+  '은행': {zh:'銀行', en:'Bank', id:'Bank'},
+  '주유소': {zh:'加油站', en:'Gas station', id:'SPBU'},
+  '학교': {zh:'學校', en:'School', id:'Sekolah'}
+};
+function candGroupKey(category){
+  // A Kakao category_name is a broad-to-specific path (e.g. restaurant > cafe): scan from the most specific segment backwards for the first known category; when the last segment is a brand name (e.g. Daiso), fall back to the parent level automatically.
+  const segs = String(category || '').split('>').map(s => s.trim()).filter(Boolean);
+  for(let i = segs.length - 1; i >= 0; i--){ if(CAT_GLOSS[segs[i]]) return segs[i]; }
+  return segs[0] || '';
+}
+function candGroupLabel(category){
+  const key = candGroupKey(category);
+  if(!key) return '';
+  const g = CAT_GLOSS[key];
+  return g ? (g[LANG] || g.zh) : key;
+}
+let displayCandidates = [];
+function groupPlacesByCategory(places){
+  const order = [], groups = new Map();
+  for(const p of places){
+    const k = candGroupKey(p.category);
+    if(!groups.has(k)){ groups.set(k, []); order.push(k); }
+    groups.get(k).push(p);
+  }
+  return order.flatMap(k => groups.get(k));
+}
+function candRowText(c){
+  const lines = [c.title];
+  if(c.kind === 'place'){
+    const a = c.roadAddress || c.address;
+    if(a && a !== c.title) lines.push(a);
+  }
+  const meta = [];
+  if(c.kind === 'place'){
+    const gl = candGroupLabel(c.category);
+    if(gl) meta.push(T('candCat',{cat:gl}));
+  }
+  // FIX fix64: with no origin coordinates (name query) there is no distance to show; explain instead that confirming will fill in the coordinates.
+  meta.push(isFinite(c.distanceM) ? T('candDistCoord',{d:Math.round(c.distanceM)}) : T('candDistNone'));
+  if(c.distanceM > 200) meta.push(T('candFar').trim());
+  lines.push(meta.join(' '));
+  return lines.join('\n');
+}
+function renderCandidateList(){
+  const box = els.candidateBox;
+  if(!box) return;
+  if(!naverCandidates.length){ box.hidden = true; return; }
+  // FIX fix51: attach the name the user originally pasted (mostly English/Chinese) for comparison - Kakao candidates carry only Korean names (the source has no English field), so this line is the cross-check.
+  const srcName = els.name.value.trim();
+  const first = naverCandidates[0];
+  let head = (srcName && first && srcName !== first.title) ? T('candRefLine',{name:srcName}) + '\n' : '';
+  head += T('candListHead',{n:naverCandidates.length});
+  if(candidateSource === 'address') head += '\n' + T('candNearbyRule') + (candWidened ? '\n' + T('candWidened') : '');
+  els.candidateHead.textContent = head;
+  setFindBtnMode('retry'); // fix97: list open -> the button shrinks to the small "re-search"
+  const addr = naverCandidates.find(x => x.kind !== 'place') || null;
+  let places = naverCandidates.filter(x => x.kind === 'place');
+  if(candidateSource !== 'name') places = groupPlacesByCategory(places);
+  displayCandidates = [addr].concat(places);
+  if(els.candSecAddr) els.candSecAddr.hidden = !addr;
+  if(els.candSecPlaces) els.candSecPlaces.hidden = !places.length;
+  if(els.candidateFoot){ els.candidateFoot.hidden = !addr; els.candidateFoot.textContent = addr ? T('candListFoot') : ''; }
+  els.candRows.forEach((rowEl, i) => {
+    const c = displayCandidates[i];
+    if(!c){ rowEl.hidden = true; rowEl.textContent = ''; return; }
+    rowEl.hidden = false;
+    rowEl.textContent = candRowText(c);
+    // FIX fix75: every row carries a machine-translated English reference line (addresses and places alike); the translation is always Korean->English only and never follows the UI language.
+    if(/[\uAC00-\uD7A3]/.test(c.title)){
+      const shownTitle = c.title, baseText = rowEl.textContent;
+      translateBoth(shownTitle).then(tr => {
+        if(!tr || displayCandidates[i] !== c) return;
+        const lines = [];
+        if(tr.gtx && tr.gtx !== shownTitle) lines.push(T('candEnGtx',{t:tr.gtx}));
+        if(tr.mm && tr.mm !== shownTitle && tr.mm !== tr.gtx) lines.push(T('candEnMm',{t:tr.mm}));
+        if(lines.length && !rowEl.hidden) rowEl.textContent = baseText + '\n' + lines.join('\n');
+      });
+    }
+  });
+  box.hidden = false;
+}
+function confirmCandidate(c){
+  if(!c) return;
+  naverOverride = c;
+  hideCandidateBoxes();
+  // FIX fix47: after confirmation, replace the page's coordinates themselves with the verified candidate coordinates - the Google/Naver/Yahoo buttons all upgrade together.
+  updateFromLatLng(c.lat, c.lng);
+  setStatus(T('stConfirmed',{title:c.title, d:Math.round(c.distanceM)}),true);
+}
+if(els.candRows) els.candRows.forEach((rowEl, i) => rowEl.addEventListener('click', () => { const c = displayCandidates[i]; if(c) confirmCandidate(c); }));
+
+// FIX fix98: machine-translate a Chinese place name into Korean (gtx zh-CN->ko; character-based proper nouns translate accurately; if no Korean comes back, return an empty string and take the original failure path).
+async function mtZhToKo(text){
+  try{
+    const sig = toSig(6000); // fix109: always go through the helper (old Safari has no AbortSignal.timeout; it must not throw)
+    const r = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=ko&dt=t&q=' + encodeURIComponent(text), sig ? { signal: sig } : {});
+    if(!r.ok) return '';
+    const gj = await r.json();
+    return (gj && Array.isArray(gj[0])) ? gj[0].map(x => (x && x[0]) || '').join('').trim() : '';
+  }catch(e){ return ''; }
+}
+async function findNearestNaver(){
+  const name = els.name.value.trim();
+  const lat = parseFloat(els.lat.value), lng = parseFloat(els.lng.value);
+  const byName = /[\uAC00-\uD7A3]/.test(name);
+  // fix98 routing: a Chinese name takes the MT name search only when there are NO coordinates (the only way out); WITH coordinates, keep fix47's /nearby address fallback (K3 case: Lotte Mart Jeju) - do not fight over the path.
+  const cjkName = !byName && /[\u4E00-\u9FFF]/.test(name);
+  const enName = !byName && !cjkName && /[A-Za-z]/.test(name); // fix99: pure-English name (English-UI share) fallback
+  const region = (isFinite(lat) && isFinite(lng)) ? regionOf(lat, lng) : ''; // fix102: coordinate routing (kr/tt/jp/other)
+  const ttQuery = (name.split(',')[0] || '').trim(); // fix106: the TomTom fallback query is the full first segment of the original name (fix102 originally truncated with /^[^0-9A-Za-z]+/, cutting off an address's house number and district - a bare street name alone matched a same-named street in another city; measured: the full string ranks correctly in TomTom's fuzzy search and hits exactly)
+  // FIX fix96 (user case maps.app.goo.gl/rcjYcLtRMDYfDdRVA): a Google App share expands to ?q=Brosis Hotel, <Korean road address>, Nampo, Busan...&ftid=
+  // - the whole string is a postal-style "English name + Korean address" composite; sending it verbatim as a Kakao keyword guarantees 0 results (report: search failed, did not auto-start).
+  // Before querying, if it is a comma composite, extract the Korean road-address segment (Hangul + ro/gil/daero + number) as the query term - measured: /local?q=<that road segment> returns the hotel as the first hit.
+  let query = name;
+  if(name.includes(',')){
+    const segs = name.split(',').map(x => x.trim()).filter(Boolean);
+    const road = segs.find(x => /[\uAC00-\uD7A3]/.test(x) && /(로|길|대로)/.test(x) && /\d/.test(x));
+    if(road) query = road;
+  }
+  // FIX fix64: no coordinates but a Korean name -> query by name (Kakao /local needs no coordinates).
+  // Google ftid shares and ID-only Naver links rely on this path to fill in coordinates so all three maps can open (user's rule: after pasting any of the three link types, the landmark can be found).
+  if(!isFinite(lat) || !isFinite(lng)){
+    if(!byName && !cjkName && !enName){ setStatus(T('stNoCoordNoName'),false); return; }
+  }
+  // FIX fix47: with no Korean name, no longer blocked outright - reverse-query the Korean address from the coordinates via Kakao (Worker /nearby),
+  // and use that address's official coordinates as the candidate (field report: with only a Plus Code and no name, the old version just flashed red text on tap, like a dead button).
+  // Only when the Worker has not been updated (no /nearby) or no address is found does it fall back to the Korean-name prompt.
+  setStatus(T('stSearching'),true);
+  hideCandidateBoxes();
+  try{
+    const ctrl = new AbortController();
+    const timer = setTimeout(()=>ctrl.abort(), 12000);
+    // FIX fix99 (user-approved): an English-UI share q=Brosis Hotel, 4 Gudeok-ro 48beon-gil, Busan, South Korea - no Korean, no Chinese, no coordinates.
+    // Kakao indexes some English place names (measured: /local?q=Brosis Hotel returns the hotel first) -> query with the first English segment directly; on no hit, return the failure prompt instead of detouring.
+    if(enName && !isFinite(lat) && query.includes(',')) query = (query.split(',')[0] || '').trim() || query;
+    // FIX fix98 (user case goo.gl/iCPRoNYK48GGh7316, Haedong Yonggungsa): Google shares give the name in the sharer's language - with a Chinese name + romanised address there is no Korean anywhere,
+    // and the old canFind never held, so Step 3 had no entry point at all. Translate the Chinese name to Korean first (character names measured exact: Haedong Yonggungsa) and then query Kakao.
+    const useLocal = byName || ((cjkName || enName) && !isFinite(lat));
+    if(useLocal && !/[\uAC00-\uD7A3]/.test(query) && /[\u4E00-\u9FFF]/.test(query)){
+      const seg = (((query.split(',')[0] || '').match(/^[^0-9A-Za-z]+/) || [''])[0] || '').trim() || (query.split(',')[0] || '').trim(); // the place name is at the start of the first segment ("Haedong Yonggungsa" + "86 Yonggung-gil" -> Haedong Yonggungsa)
+      const ko = await mtZhToKo(seg || query);
+      if(ko && /[\uAC00-\uD7A3]/.test(ko)) query = ko;
+    }
+    // FIX fix102: in coordinate mode only kr (Kakao) and tt (TomTom-strong regions) have a verification source; jp/other get the honest message directly instead of asking Kakao and receiving a "Korea only" reply.
+    // FIX fix103: await one microtask before writing the status - the auto search is triggered synchronously by updateLinks BEFORE updateFromLatLng writes the parse status,
+    // so a synchronous write is overwritten by the parse status (matrix W3 caught it in a slow environment: the status stayed on "parsed"); every other result path lands after a fetch await, i.e. after the parse status - this path now matches.
+    if(!useLocal && isFinite(lat) && region !== 'kr' && region !== 'tt'){ await Promise.resolve(); setStatus(T('stNoSource'),false); return; }
+    const res = await fetch(useLocal ? LOCAL_WORKER+'?q='+encodeURIComponent(query)+'&display=5' : (region === 'tt' ? TT_NEARBY_WORKER : NEARBY_WORKER)+'?lat='+lat+'&lng='+lng, {signal: ctrl.signal});
+    clearTimeout(timer);
+    let data = await res.json();
+    // FIX fix102: TomTom-endpoint-specific error message (international coordinates must never show the "Korea only" wording).
+    if(data && data.error === 'not_configured_tt'){ setStatus(T('stNotConfTt'),false); return; }
+    if(data && data.error === 'no_address' && region === 'tt'){ setStatus(T('stNoAddrIntl'),false); return; }
+    // FIX fix102: Chinese-name fallback chain - Kakao first (fix98 MT to Korean; Korean places with Chinese names are hit through it); only when Kakao has no candidate, query TomTom with the original Chinese name
+    // (Chinese indexes in places like Taiwan measured hittable, e.g. Taipei Station). Name mode only; when Kakao has a configuration error there is no fallback (fix the configuration first).
+    if(useLocal && cjkName && data && data.error !== 'not_configured' && (!Array.isArray(data.items) || !data.items.length) && ttQuery){
+      try{
+        const r2 = await fetch(TT_SEARCH_WORKER+'?q='+encodeURIComponent(ttQuery), {signal: ctrl.signal});
+        const d2 = await r2.json();
+        if(d2 && Array.isArray(d2.items) && d2.items.length) data = d2;
+        else if(d2 && d2.error === 'not_configured_tt'){ setStatus(T('stNotConfTt'),false); return; }
+      }catch(e){}
+    }
+    if(data && data.error === 'not_configured'){
+      setStatus(T('stNotConfigured'),false);
+      return;
+    }
+    if(data && data.error === 'no_address'){
+      setStatus(T('stNoAddress'),false);
+      return;
+    }
+    if(!data || !Array.isArray(data.items)){
+      setStatus(useLocal ? T('stFindFailName') : T('stFindFailAddr'),false);
+      return;
+    }
+    candidateSource = useLocal ? 'name' : 'address';
+    naverCandidates = data.items.map(it=>({
+      title: it.title || '',
+      address: it.address || '',
+      roadAddress: it.roadAddress || '',
+      link: it.link || '',
+      kind: it.kind || (byName ? 'place' : 'address'),
+      category: it.category || '',
+      lat: normalizeNaverCoord(it.mapy),
+      lng: normalizeNaverCoord(it.mapx),
+    })).filter(c=>isFinite(c.lat) && isFinite(c.lng))
+      .map(c=>({...c, distanceM: (isFinite(lat) && isFinite(lng)) ? distanceMeters(lat,lng,c.lat,c.lng) : NaN}))
+      .sort((a,b)=> (isFinite(a.distanceM) && isFinite(b.distanceM)) ? a.distanceM-b.distanceM : 0);
+    // FIX fix79: user's rule "the place-candidate list offers only places within 30 m, count capped at 10; fix89: user changed it to 5 places is enough -> cap now 5" - coordinate mode (/nearby) only:
+    // name mode looks up a specific place, so a 30 m filter would wrongly drop distant targets. Address candidates are that point's own street address and are uncapped; place names take the nearest 10.
+    // FIX fix102: the threshold is now keyed on candidateSource (originally !byName) - when a Chinese name comes back through the TomTom fallback, kind is a real place,
+    // and filtering by !byName with a 30 m rule would drop every candidate (no origin coordinates -> distanceM=NaN); keying on the source is equivalent to the existing paths' results.
+    if(candidateSource === 'address'){
+      const addrC = naverCandidates.filter(x => x.kind !== 'place');
+      let placeC = naverCandidates.filter(x => x.kind === 'place' && isFinite(x.distanceM) && x.distanceM <= 30).slice(0, 5);
+      candWidened = false;
+      // FIX fix95 (user case naver.me/x4lws2zw): when nothing is within 30 m, widen to 100 m - large venues' share pins and Kakao pins often differ by 30-50 m
+      // (Gimhae Lotte measured 50.3 m, Lotte Mart Jeju 42.9 m); holding strictly to 30 m would leave "no list to choose from". The distance is printed on each row for the user to judge; no widening when candidates exist within 30 m.
+      if(!placeC.length){
+        placeC = naverCandidates.filter(x => x.kind === 'place' && isFinite(x.distanceM) && x.distanceM <= 100).slice(0, 5);
+        candWidened = placeC.length > 0;
+      }
+      naverCandidates = addrC.concat(placeC);
+    }
+    // FIX fix90: user's rule "make it 5 everywhere, for performance" - name mode also takes only the first 5; the Worker /local changed to size=5 in step, transmitting and parsing less at the source.
+    if(candidateSource === 'name'){ naverCandidates = naverCandidates.slice(0, 5); }
+    if(!naverCandidates.length){ setStatus(useLocal ? T(cjkName ? 'stNoCandNameIntl' : 'stNoCandName',{name}) : T('stNoCandAddr'),false); return; }
+    renderCandidateList();
+    setStatus((candidateSource === 'name'
+      ? ((isFinite(lat) && isFinite(lng)) ? T('stCandFoundNameCoord',{n:naverCandidates.length}) : T('stCandFoundNameNoCoord',{n:naverCandidates.length}))
+      : (region === 'tt' ? T('stCandAddrIntl') : T('stCandFoundAddr'))) + (inputWasYahoo ? T('yahooShareNote') : '') + ((readySpec && readySpec.k === 'readyMismatch') ? ' ' + specText({k:'mismatchStatus', v:{detail: readySpec.v.detail}}) : ''),true); // fix94: after the auto search completes, keep fix39's Plus Code mismatch warning (same preservation as the fix92 Yahoo note)
+  }catch(e){
+    setStatus(T('stOffline'),false);
+  }
+}
+if(els.findBtn) els.findBtn.addEventListener('click', findNearestNaver);
+let rideDestText = '';
+function copyRideDest(){
+  const st = els.rideCopyStatus; if(!st) return;
+  if(!rideDestText){ st.textContent = T('rideNoDest'); return; }
+  let ok = false;
+  try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(rideDestText); ok = true; } }catch(e){}
+  if(!ok){ try{ const ta = document.createElement('textarea'); ta.value = rideDestText; document.body.appendChild(ta); ta.select(); ok = !!(document.execCommand && document.execCommand('copy')); ta.remove(); }catch(e){} }
+  st.textContent = ok ? T('rideCopied') : T('rideCopyFail');
+}
+['kakaoTIOS','kakaoTAndroid','krideIOS','krideAndroid'].forEach(id => { const b = $(id); if(b) b.addEventListener('click', copyRideDest); });
+$('clearBtn').addEventListener('click',()=>{ els.paste.value=''; els.name.value=''; els.lat.value=''; els.lng.value=''; els.mx.value=''; els.my.value=''; currentPinId=''; currentGoogleId=''; currentKakaoId=''; naverOverride=null; naverCandidates=[]; if(els.candidateBox) els.candidateBox.hidden=true; setFindBtnMode('primary'); coordsValidForName=false; hasReadyResult=false; readySpec=null; document.querySelectorAll('details.advanced').forEach(d=>{ d.open=false; }); updateLinks(); setStatus('',true); els.paste.focus(); });
+
+$('pasteBtn').addEventListener('click', async ()=>{
+  try{
+    if(!navigator.clipboard || !navigator.clipboard.readText) throw new Error('clipboard unavailable');
+    const text = await navigator.clipboard.readText();
+    if(!text || !text.trim()) throw new Error('clipboard empty');
+    els.paste.value = text;
+    parseInput();
+  }catch(e){
+    els.paste.focus();
+    setStatus(T('stPasteHelp'),false);
+  }
+});
+$('parseBtn').addEventListener('click',parseInput);
+// FIX fix65: Step 1 example links (Incheon Airport Terminal 1; coordinates are Kakao's official values, in each provider's verified native format). Tapping one fills it in and converts.
+const EXAMPLES = {
+  pluscode: '7QQ32HM7+CR',
+  shortcode: '2HM7+CR 台北市',
+  address: '台北市信義區信義路五段7號',
+  google: 'https://www.google.com/maps/place/%EC%9D%B8%EC%B2%9C%EA%B5%AD%EC%A0%9C%EA%B3%B5%ED%95%AD/@37.4496919,126.4524038,17z',
+  naver: 'https://map.naver.com/?lat=37.4496919&lng=126.4524038&title=%EC%9D%B8%EC%B2%9C%EA%B5%AD%EC%A0%9C%EA%B3%B5%ED%95%AD',
+  kakao: 'https://map.kakao.com/link/map/%EC%9D%B8%EC%B2%9C%EA%B5%AD%EC%A0%9C%EA%B3%B5%ED%95%AD%20%EC%A0%9C1%EC%97%AC%EA%B0%9D%ED%84%B0%EB%AF%B8%EB%84%90,37.4496919,126.4524038',
+  yahoo: 'https://map.yahoo.co.jp/place/?lat=35.62972&lon=139.79417&z=17'
+};
+document.querySelectorAll('.ex-btn').forEach(b=>b.addEventListener('click',()=>{ els.paste.value = EXAMPLES[b.dataset.ex] || ''; parseInput(); }));
+$('exampleBtn').addEventListener('click',()=>{ els.name.value='남포역'; updateFromLatLng(35.097883,129.034663,T('stExample')); });
+document.querySelectorAll('[data-copy]').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const key = btn.getAttribute('data-copy');
+    // The naverAppAndroid copy source is the mono text field, not the <a> button itself
+    const srcEl = (key==='naverAppAndroid') ? els.naverAppAndroidText : els[key];
+    const text = srcEl.textContent.split('\n')[0];
+    if(!text || text==='—') return;
+    try{ await navigator.clipboard.writeText(text); btn.textContent=T('copied'); setTimeout(()=>{ btn.textContent = key.includes('App')?T('copyAppLink'):T('copyLink'); },1200); }
+    catch(e){ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); btn.textContent=T('copied'); setTimeout(()=>{ btn.textContent = key.includes('App')?T('copyAppLink'):T('copyLink'); },1200); }
+  });
+});
+// FIX fix26: default to blank, not Nampo-dong - on page load the Nampo Station coordinates are no longer pre-filled (leftover Nampo values were the root of fixes 9/13/17/18/19/24).
+// Blank default: all fields empty, buttons in their initial state; values appear only after the user pastes a link/coordinates.
+els.paste.value=''; els.name.value=''; els.lat.value=''; els.lng.value=''; els.mx.value=''; els.my.value='';
+currentPinId=''; currentGoogleId=''; coordsValidForName=false;
+// FIX fix72: language-switch buttons + initial application (detection lives in the STR block: ?lang first, then localStorage).
+$('langZh').addEventListener('click',()=>applyLang('zh'));
+$('langEn').addEventListener('click',()=>applyLang('en'));
+$('langId').addEventListener('click',()=>applyLang('id'));
+applyLang(LANG); setStatus('',true);
+loadQuota();
+</script>
+
+<!-- FIX fix27: Google Maps Plus Code instructions and tutorial (collapsible, collapsed by default, does not disturb the simplified layout) -->
+<details class="guide">
+<summary data-i18n="guideSummary">📍 Google Maps Plus Code 使用說明（點開看教學）</summary>
+<h2 data-i18n="guideWhatH">什麼是 Plus Code？</h2>
+<p data-i18n-html="guideWhatP">Plus Code 是 Google 的地點編碼，用一串字元代表經緯度。完整碼像 <code>8Q7C5RJG+F63</code>（<code>+</code> 前面 8 字），短碼像 <code>5RJG+F6</code>（<code>+</code> 前面只有 4 字，需搭配城市名）。</p>
+<h2 data-i18n="guideHowH">怎麼從 Google Maps App 複製 Plus Code？</h2>
+<ol>
+<li data-i18n-html="guideHow1">在 Google Maps App 點<strong>地點名稱</strong>，打開地點卡片（不要長按地圖空地，那會拿到別的位置的碼）。</li>
+<li data-i18n-html="guideHow2">往下滑到「關於」區，找到 <strong>Plus Code</strong> 那一行（例如 <code>5RJG+F6 金海市 南韓慶尚南道</code>）。</li>
+<li data-i18n="guideHow3">點那行複製，或手動記下短碼 + 城市名。</li>
+</ol>
+<h2 data-i18n="guidePasteH">怎麼貼到轉換頁？</h2>
+<ul>
+<li data-i18n-html="guidePaste1"><strong>完整碼</strong>：直接貼 <code>8Q7C5RJG+F63</code> 就好，不用加城市名。</li>
+<li data-i18n-html="guidePaste2"><strong>短碼</strong>：一定要加上城市名，例如貼 <code>5RJG+F6 金海市</code>。只貼短碼 <code>5RJG+F6</code> 會提示需要參考位置，不會產生座標。</li>
+<li data-i18n="guidePaste3">貼上後網頁會自動開始轉換；如果沒有自動開始，請按「已經貼好了，開始轉換」。成功後往下點一個地圖按鈕即可。</li>
+</ul>
+<h2 data-i18n="guideNoteH">注意事項</h2>
+<ul>
+<li data-i18n-html="guideNote1">App 顯示的都是<strong>短碼</strong>，務必連城市名一起貼。</li>
+<li data-i18n-html="guideNote2">短碼的格子字不同就是不同位置：<code>F6</code> 是飯店、<code>FVG</code> 是旁邊公園，相差約 150 公尺。請確認是從地點卡片複製的碼，不是長按空地拿到的碼。</li>
+<li data-i18n-html="guideNote3">Plus Code 代表一塊範圍，不是精確圖釘；轉換頁放的是範圍中心。<code>+</code> 後面 2 字、還原後共 10 字的碼，範圍約 14 公尺見方，中心和店家最多可能差約 10 公尺；<code>+</code> 後面 3 字、還原後共 11 字的碼，範圍約 3 公尺見方，落差才約 2 公尺。要精準找店，請改貼店家的分享連結，或到現場再以店名、招牌確認。</li>
+</ul>
+</details>
+</body>
+</html>
