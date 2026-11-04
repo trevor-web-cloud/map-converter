@@ -32,7 +32,7 @@ Automated tests: `node test_matrix.cjs` (loads the page <script> in Node with a 
 | P7 | Invalid code character (8Q58FFRR+X1) | Not decoded, no coordinates |
 | P8 | Exact coordinates + mismatched Plus Code in one text (fix39) | Warning + exact coordinates used |
 | C1 | Bare coordinate text 37.5634829, 126.9851666 | Coordinates taken |
-| C2 | Parenthesised coordinates (25.033524, 121.564604) (TW) | Coordinates taken; X/Y 13532509.82,2879862.85 |
+| C2 | Parenthesised coordinates (25.033524, 121.564604) (TW, Taipei 101) | Coordinates taken; X/Y 13532509.82,2879862.85 |
 | C3 | Out-of-range coordinates 999,999 | Rejected, no coordinates |
 | S1 | Naver share full text (name + address + short link + HX7P+92) | Short link parsed + fix39 cross-check warning |
 | T1 | Clear after parsing | Fields/buttons fully reset, advanced section collapsed, candidate box hidden |
@@ -83,6 +83,11 @@ The results column is filled in after each full run (date + footer version + PAS
 - English edition: comments, test-row descriptions, check labels and this document are all in English. The page's user-facing UI strings are unchanged (the page is trilingual zh/en/id by design).
 - Privacy sanitization: relay-account email addresses were replaced with neutral labels ("TomTom relay account #2/#3/#4/#5"); masked API-key fragments and key IDs were deleted in full; a personal residential address in Pingzhen District, Taoyuan — together with its exact coordinates and Plus Code — was removed from the test data and narrative (matrix row W8 and the /tt-search fixture now use the public Taipei 101 address), and the OLC encoder note below keeps the "validated against three previously verified vectors" claim without printing the residential vector.
 - Page behaviour is unchanged except the appname URL in Naver app links (now the new repository URL); the footer reads v2026-11-03-fix110. The backend Worker (map-resolve) is unchanged in code; its account subdomain was renamed to map-converter alongside the move, so the page now calls map-resolve.map-converter.workers.dev.
+
+## fix111 (2026-11-04) — privacy pass: residual near-residential test coordinate replaced
+- Origin: a scheduled security scan of the public set found one residual precise coordinate in the C2 test data (a parsing example in `test_rows.js`, the fix35 note in `index.html`, and the C2 row above) located in a residential area of Pingzhen District, Taoyuan — a leftover test vector that the fix110 sanitization pass did not cover (the residential address, its exact coordinates and its Plus Code were already absent).
+- Change (test data and comments only; page behaviour unchanged): the C2 parenthesised-coordinate example now uses the public Taipei 101 address point (25.033524, 121.564604) — the same public landmark point already used by rows W8–W10 — with the expected Web-Mercator X/Y recomputed for the new point (13532509.82, 2879862.85). The fix35 comment example in `index.html` was updated to match. Footer reads v2026-11-04-fix111.
+- The repository history was rewritten in the same pass so the removed coordinate and the committer email address no longer appear in any commit or commit metadata (author/committer now use the GitHub noreply address); see the run record below.
 
 ## Run records
 - 2026-10-22 v2026-10-22-fix45 (local): 36 rows, 32 PASS / 4 FAIL — G7 (?ftid= link buttons #), N2 (place ID link buttons #), C3 (999,999 mistaken for X/Y), T5 (bare-text place name did not clear old coordinates).

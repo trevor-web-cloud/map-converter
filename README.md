@@ -27,4 +27,4 @@ All provider API calls go through a Cloudflare Worker:
 
 ## Version
 
-Current page version: **v2026-11-03-fix110** (standalone repository migration, English edition; see `COVERAGE_MATRIX.md` for the fix110 entry and all prior history). Current Worker version: fix97.
+Current page version: **v2026-11-04-fix111** (privacy pass: C2 test coordinate replaced with the public Taipei 101 point; see `COVERAGE_MATRIX.md` for the fix111 entry and all prior history). Current Worker version: fix97.
