@@ -26,7 +26,7 @@ Automated tests: `node test_matrix.cjs` (loads the page <script> in Node with a 
 | P1 | Full Plus Code, 10 chars (Jeju 8Q58FFRR+X8) | Centre 33.492438,126.490813 + precision note |
 | P2 | Full Plus Code, 11 chars (Lotte 8Q58FFJJ+XHR, bare text) | Centre 33.482488,126.481391 |
 | P3 | Full Plus Code (JP 8Q7XJQJW+VX) | Centre 35.632188,139.797438 |
-| P4 | Short code + TW city (2HM7+CR, Pingzhen District, Taoyuan City) | Recovers 7QQ32HM7+CR, centre 25.033563,121.564563 |
+| P4 | Short code + TW city (2HM7+CR, Xinyi District, Taipei City) | Recovers 7QQ32HM7+CR, centre 25.033563,121.564563 |
 | P5 | Short code + JP city (JQJW+VX, Koto City, Tokyo) | Recovers 8Q7XJQJW+VX |
 | P6 | Short code without reference (FFRR+X8 alone) | Rejected, coordinates cleared |
 | P7 | Invalid code character (8Q58FFRR+X1) | Not decoded, no coordinates |

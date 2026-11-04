@@ -1,4 +1,4 @@
-// Cloudflare Worker - map-resolve (fix97 upstream timeout protection + fix96 five-key TomTom relay failover + fix92 TomTom international landmark verification + fix91 per-request aggregate counting + fix14 short-link resolution + fix40 nearby place search + fix47 address reverse lookup + fix49 nearby places + fix52 machine translation + fix55 nearby distance sorting + fix61 short-link GET retry + fix63 Kakao ID coordinate fetch + fix69 usage counting)
+// Cloudflare Worker - map-resolve (fix98 security-audit remediation: resolver host allowlist + /nearby category fan-out deferred until the address chain succeeds + TomTom per-call key sweep capped at 2 + /translate dbg removed + /stats finalisation guard and stale STATS_KEY comment corrected; on top of fix97 upstream timeout protection + fix96 five-key TomTom relay failover + fix92 TomTom international landmark verification + fix91 per-request aggregate counting + fix14 short-link resolution + fix40 nearby place search + fix47 address reverse lookup + fix49 nearby places + fix52 machine translation + fix55 nearby distance sorting + fix61 short-link GET retry + fix63 Kakao ID coordinate fetch + fix69 usage counting)
 // Deployment: paste into Cloudflare Dashboard -> Workers -> map-resolve -> Edit code, replacing the whole file;
 // also add these Secrets under Settings -> Variables and Secrets:
 // KAKAO_REST_KEY (the Kakao Local API REST key; keys live only in Worker Secrets, never in the front end)
@@ -7,8 +7,8 @@
 // TOMTOM_API_KEY_3 (fix94: third TomTom key, optional; takes over when the first two are rejected)
 // TOMTOM_API_KEY_4 (fix95: fourth TomTom key, optional; takes over when the first three are rejected)
 // TOMTOM_API_KEY_5 (fix96: fifth TomTom key, optional; takes over when the first four are rejected)
-// fix69 usage reports also need: a KV Namespace binding under Settings -> Bindings, variable name STATS;
-// and one more Secret: STATS_KEY (a self-chosen password, used when reading the /stats report).
+// fix69 usage reports also need: a KV Namespace binding under Settings -> Bindings, variable name STATS.
+// (fix98 comment correction: there is NO STATS_KEY - /stats has been public read-only by deliberate design since fix69e; it returns aggregate counts only.)
 // Endpoints:
 // GET /resolve?url={short link} -> {"status":307,"location":"..."} (HEAD + redirect:manual to obtain the Location)
 // GET /local?q={Korean keyword} -> candidate places from Kakao Local keyword search
@@ -94,16 +94,20 @@ export default {
           try { const f = await env.STATS.get(fKey); if (f) return JSON.parse(f); } catch (e) {}
         }
         const o = {};
+        let baseTotal = 0;
         for (const m of metrics) {
           let base = parseInt((await env.STATS.get('s:' + tz + ':' + d + ':' + m)) || '0', 10) || 0;
           if (tz === 'tpe') base += parseInt((await env.STATS.get('s:' + d + ':' + m)) || '0', 10) || 0;
           o[m] = base;
+          baseTotal += base;
         }
+        let listedCount = 0;
         try {
           let cursor;
           const batchKeys = [];
           do {
             const page = await env.STATS.list({ prefix: 'e:' + tz + ':' + d + ':', cursor });
+            listedCount += page.keys.length;
             for (const k of page.keys) {
               const parts = k.name.split(':');
               if (parts.length >= 5 && parts[3] === 'batch') { batchKeys.push(k.name); continue; }
@@ -125,7 +129,9 @@ export default {
         o.tomtom_total = (o.tomtom_search || 0) + (o.tomtom_reverse || 0);
         if (isPast) {
           const dayEndUtc = Date.parse(d + 'T00:00:00Z') - off * 3600 * 1000 + 86400 * 1000;
-          if (Date.now() > dayEndUtc + 900 * 1000) {
+          // fix98 (security audit): finalise only days that actually hold data. Previously an anonymous caller could mint
+          // finalised f: keys for arbitrary fabricated past dates (one KV write plus a month of scans per invented date).
+          if (Date.now() > dayEndUtc + 900 * 1000 && (baseTotal > 0 || listedCount > 0)) {
             try { await env.STATS.put(fKey, JSON.stringify(o)); } catch (e) {}
           }
         }
@@ -221,10 +227,12 @@ export default {
       try {
         // fix88: the category search needs only lat/lng, so it starts immediately on handler entry, in parallel with the address chain below (fix49's category top-up logic unchanged,
         // only its start point moved earlier - it previously queued behind the address search and cost a whole extra Kakao round trip).
+        // fix98 (security audit) reverses fix88's start point for quota protection: the fan-out now starts only after the address chain has
+        // succeeded, so a junk or failing request costs 1-2 Kakao calls instead of 9-10. Success-path cost is unchanged (still 10 calls, one extra round trip of latency).
         // fix49: with only an address candidate there is nothing to switch to - top up with a Kakao category search for real places nearby
         // (restaurants/cafes/lodging/attractions/supermarkets/convenience stores/subway stations/parking, radius 300 m), so the user can pick the right landmark.
         const CATS = ['FD6', 'CE7', 'AD5', 'AT4', 'MT1', 'CS2', 'SW8', 'PK6'];
-        const catPromise = Promise.all(CATS.map(async (code) => {
+        const fetchCats = () => Promise.all(CATS.map(async (code) => {
           try {
             const r = await fetch('https://dapi.kakao.com/v2/local/search/category.json?category_group_code=' + code + '&x=' + lng + '&y=' + lat + '&radius=300&sort=distance&size=5', { headers: h, signal: toSig(8000) });
             if (!r.ok) return [];
@@ -277,7 +285,7 @@ export default {
           mapx: String(Math.round(parseFloat(sd.x) * 1e7)),
           mapy: String(Math.round(parseFloat(sd.y) * 1e7)),
         };
-        const catLists = await catPromise;
+        const catLists = await fetchCats();
         // fix69d: category-call counting is aggregated once after the parallel calls finish (per-call get-modify-put inside the parallel loop would overwrite each other and undercount)
         bumpBg('kakao_category', CATS.length);
         const seen = new Set([item.title + '|' + item.mapx + '|' + item.mapy]);
@@ -337,7 +345,10 @@ export default {
       const ks = ttKeys();
       if (!ks.length) return null;
       const start = TT_LAST_GOOD < ks.length ? TT_LAST_GOOD : 0;
-      for (let n = 0; n < ks.length; n++) {
+      // fix98 (security audit): cap the per-call sweep at 2 key positions. Rotation still covers all keys across requests
+      // via the sticky start, but one anonymous request can no longer burn through all five accounts' failure paths at once.
+      const maxTry = Math.min(ks.length, 2);
+      for (let n = 0; n < maxTry; n++) {
         const i = (start + n) % ks.length;
         let r = null;
         try { r = await fetch(urlForKey(encodeURIComponent(ks[i])), { headers: { 'User-Agent': 'map-resolve-worker' }, signal: toSig(8000) }); } catch (e) { r = null; }
@@ -416,7 +427,7 @@ export default {
       }
     }
 
-    // fix52: machine-translate a Korean place name into English (identification reference only, never used for searching). Tries several free sources in order and returns dbg for diagnosis
+    // fix52: machine-translate a Korean place name into English (identification reference only, never used for searching). Tries several free sources in order (fix98: the dbg diagnostics field was removed from the response - see the /translate handler)
     // (Cloudflare's shared egress IPs get blocked by some endpoints or exhaust IP quotas, so the actual response is needed to see which route works):
     // 1) MyMemory (if env.TRANSLATE_EMAIL is set, the quota binds to that mailbox instead of the shared IP)
     //   2) Google gtx @ translate.google.com  3) Google gtx @ translate.googleapis.com
@@ -424,40 +435,43 @@ export default {
     if (u.pathname === '/translate') {
       const text = (u.searchParams.get('text') || '').slice(0, 100);
       if (!text) return new Response(JSON.stringify({ error: 'missing text' }), { status: 400, headers: cors });
-      const dbg = {};
+      // fix98 (security audit): the dbg diagnostics field is no longer returned - it exposed per-provider failure states and
+      // fragments of upstream quota responses to anonymous callers. Provider order and behaviour are unchanged.
       let en = '', via = '';
       try {
         const de = env && env.TRANSLATE_EMAIL ? '&de=' + encodeURIComponent(env.TRANSLATE_EMAIL) : '';
         const mm = await fetch('https://api.mymemory.translated.net/get?langpair=ko%7Cen&q=' + encodeURIComponent(text) + de, { signal: toSig(6000) });
-        dbg.mm = 'http_' + mm.status;
         if (mm.ok) {
           const mj = await mm.json().catch(() => null);
           const t = (mj && mj.responseData && mj.responseData.translatedText || '').trim();
           if (t && !/MYMEMORY|WARNING|QUOTA|INVALID/i.test(t)) { en = t; via = 'mymemory'; }
-          else if (t) dbg.mm += ':' + t.slice(0, 60);
         }
-      } catch (e) { dbg.mm = 'throw'; }
+      } catch (e) {}
       if (!en) {
         for (const pair of [['gt1', 'translate.google.com'], ['gt2', 'translate.googleapis.com']]) {
           const tag = pair[0], host = pair[1];
           try {
             const gt = await fetch('https://' + host + '/translate_a/single?client=gtx&sl=ko&tl=en&dt=t&q=' + encodeURIComponent(text), { signal: toSig(6000) });
-            dbg[tag] = 'http_' + gt.status;
             if (gt.ok) {
               const gj = await gt.json().catch(() => null);
               const t = gj && Array.isArray(gj[0]) ? gj[0].map(s => (s && s[0]) || '').join('').trim() : '';
               if (t) { en = t; via = tag; break; }
-              dbg[tag] += ':empty';
             }
-          } catch (e) { dbg[tag] = 'throw'; }
+          } catch (e) {}
         }
       }
-      return new Response(JSON.stringify({ en, via, dbg }), { headers: cors });
+      return new Response(JSON.stringify({ en, via }), { headers: cors });
     }
 
     // fix14: short-link resolution
+    // fix98 (security audit): host allowlist. The resolver previously fetched ANY http(s) URL for anonymous callers
+    // (a status/Location oracle and a way to trigger GETs on third parties from Cloudflare egress). It now only expands
+    // the map short-link hosts the converter actually receives: Naver (naver.me), Kakao (kko.to) and Google (goo.gl, maps.app.goo.gl).
+    const RESOLVE_HOSTS = new Set(['naver.me', 'kko.to', 'goo.gl', 'maps.app.goo.gl']);
     const target = u.searchParams.get('url');
-    if (!target || !/^https?:\/\//i.test(target)) {
+    let targetHost = '';
+    try { targetHost = new URL(target || '').hostname.toLowerCase(); } catch (e) {}
+    if (!target || !/^https?:\/\//i.test(target) || !RESOLVE_HOSTS.has(targetHost)) {
       return new Response(JSON.stringify({ error: 'missing url' }), { status: 400, headers: cors });
     }
     try {

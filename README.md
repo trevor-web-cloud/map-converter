@@ -27,4 +27,4 @@ All provider API calls go through a Cloudflare Worker:
 
 ## Version
 
-Current page version: **v2026-11-04-fix111** (privacy pass: C2 test coordinate replaced with the public Taipei 101 point; see `COVERAGE_MATRIX.md` for the fix111 entry and all prior history). Current Worker version: fix97.
+Current page version: **v2026-11-04-fix112** (security-audit remediation: remaining precise Pingzhen test vectors — P4 short Plus Code and the W1/W7 field-test point, address and full Plus Code — replaced with public Taipei 101 data; see `COVERAGE_MATRIX.md` for the fix112 entry and all prior history). Current Worker version: fix98 (security-audit remediation: resolver host allowlist, /nearby fan-out deferred until the address chain succeeds, TomTom per-call key sweep capped at 2, /translate dbg removed, /stats finalisation guard).

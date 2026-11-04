@@ -93,7 +93,7 @@ rows.push(row('P3', 'Full Plus Code (JP)', async (c) => {
   check(c, 'centre', near(latV(), 35.6321875, 1e-6) && near(lngV(), 139.7974375, 1e-6), E('lat').value + ',' + E('lng').value);
 }));
 rows.push(row('P4', 'Short code + TW city recovery', async (c) => {
-  await pasteAndParse('2HM7+CR 桃園市平鎮區');
+  await pasteAndParse('2HM7+CR 台北市信義區');
   check(c, 'recovered', near(latV(), 25.0335625, 1e-6) && near(lngV(), 121.5645625, 1e-6), E('lat').value + ',' + E('lng').value);
 }));
 rows.push(row('P5', 'Short code + JP city recovery', async (c) => {
@@ -629,7 +629,7 @@ rows.push(row('U2', 'Ride-hailing in one block: Kakao T / k.ride open-app + copy
   check(c, 'dest cleared', E('rideDest').textContent === '—', E('rideDest').textContent);
 }));
 
-rows.push(row('W1', 'Taiwan coords -> TomTom verification (fix102, Pingzhen field-test shape)', async (c) => {
+rows.push(row('W1', 'Taiwan coords -> TomTom verification (fix102 shape, Taipei 101)', async (c) => {
   const log0 = FETCH_LOG.length;
   await pasteAndParse('25.033524, 121.564604'); await flush();
   const log = FETCH_LOG.slice(log0);
@@ -637,7 +637,7 @@ rows.push(row('W1', 'Taiwan coords -> TomTom verification (fix102, Pingzhen fiel
   check(c, 'kakao nearby NOT called', !log.some(u => u.includes('/nearby?lat=25.033524')), 'kakao nearby called');
   check(c, 'candidates open', E('candidateBox').hidden === false && candRows().length >= 2, 'hidden=' + E('candidateBox').hidden + ' rows=' + candRows().length);
   check(c, 'address row first', !!(candRows()[0] && candRows()[0].textContent.includes('信義路五段7號')), candRows().map(r => r.textContent.slice(0, 14)).join('|'));
-  check(c, 'nearby place listed', candRows().some(x => x.textContent.includes('遠傳桃園平鎮南勢直營門市')), candAllText().slice(0, 80));
+  check(c, 'nearby place listed', candRows().some(x => x.textContent.includes('台北101觀景台')), candAllText().slice(0, 80));
   candYes(); await flush();
   check(c, 'confirmed address coords', near(latV(), 25.033524, 1e-6) && near(lngV(), 121.564604, 1e-6), E('lat').value + ',' + E('lng').value);
   check(c, 'status confirmed', st().includes('已確認地點'), st().slice(0, 40));
@@ -695,10 +695,10 @@ rows.push(row('W6', 'Region without a verification source -> Google Plus Code he
   check(c, 'hidden in KR (Kakao source exists)', E('plusHelpBtn').style.display === 'none', String(E('plusHelpBtn').style.display));
 }));
 
-rows.push(row('W7', 'TomTom region -> Google Plus Code helper button also shown (fix105, Pingzhen)', async (c) => {
+rows.push(row('W7', 'TomTom region -> Google Plus Code helper button also shown (fix105 shape, Taipei 101)', async (c) => {
   await pasteAndParse('7QQ32HM7+CR'); await flush();
   check(c, 'button visible in TW (tt region)', E('plusHelpBtn').style.display !== 'none', String(E('plusHelpBtn').style.display));
-  check(c, 'href opens google search with coords', (E('plusHelpBtn').href || '').includes('google.com/maps/search/?api=1&query=25.033524'), E('plusHelpBtn').href);
+  check(c, 'href opens google search with coords', (E('plusHelpBtn').href || '').includes('google.com/maps/search/?api=1&query=25.0335625'), E('plusHelpBtn').href);
   check(c, 'hint visible', E('plusHelpHint').style.display !== 'none', String(E('plusHelpHint').style.display));
   check(c, 'tt candidates still open (API primary)', E('candidateBox').hidden === false && candRows().length >= 2, 'hidden=' + E('candidateBox').hidden + ' rows=' + candRows().length);
   candYes(); await flush();

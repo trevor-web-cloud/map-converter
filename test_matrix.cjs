@@ -79,13 +79,13 @@ global.fetch = async (url, opts) => {
   } else if (u.includes('/place?')) {
     if (u.includes('id=338712143')) body = { id: '338712143', name: '브로시스호텔', lat: 35.0985955, lng: 129.0308898 };
     else body = { error: 'not_found' };
-  } else if (u.includes('/tt-nearby') && u.includes('lat=24.91')) {
-    // fix102: TomTom Taiwan (Pingzhen field-test shape: address candidate + places at 2m/5m/13m)
-    body = { provider: 'tomtom', total: 4, items: [
-      { title: '桃園市平鎮區信義路五段7號', address: '324032桃園市平鎮區信義路五段7號', roadAddress: '', kind: 'address', mapx: '1215646040', mapy: '250335240', link: '', category: '', telephone: '' },
-      { title: '遠傳桃園平鎮南勢直營門市', address: '桃園市平鎮區信義路五段7號', roadAddress: '', kind: 'place', mapx: '1215645600', mapy: '250335600', link: '', category: 'Telecommunications', telephone: '' },
-      { title: '聯恩診所', address: '桃園市平鎮區信義路五段7號', roadAddress: '', kind: 'place', mapx: '1215646000', mapy: '250335500', link: '', category: 'Clinic', telephone: '' },
-      { title: '南勢藥局', address: '桃園市平鎮區信義路五段91巷', roadAddress: '', kind: 'place', mapx: '1215645600', mapy: '250335000', link: '', category: 'Pharmacy', telephone: '' }] };
+  } else if (u.includes('/tt-nearby') && u.includes('lat=25.03')) {
+    // fix102 shape retained; fix112 (security audit run-1 remediation): the Pingzhen field-test fixture was replaced with
+    // Taipei 101 public-landmark data - no precise non-public points in test data.
+    body = { provider: 'tomtom', total: 3, items: [
+      { title: '台北市信義區信義路五段7號', address: '110615台北市信義區信義路五段7號', roadAddress: '', kind: 'address', mapx: '1215646040', mapy: '250335240', link: '', category: '', telephone: '' },
+      { title: '台北101觀景台', address: '台北市信義區信義路五段7號89樓', roadAddress: '', kind: 'place', mapx: '1215645600', mapy: '250335600', link: '', category: 'Attraction', telephone: '' },
+      { title: '台北101購物中心', address: '台北市信義區信義路五段7號', roadAddress: '', kind: 'place', mapx: '1215646000', mapy: '250335500', link: '', category: 'Shopping', telephone: '' }] };
   } else if (u.includes('/tt-nearby') && u.includes('lat=52.51')) {
     // fix102: TomTom Europe (Berlin Brandenburg Gate field-test shape)
     body = { provider: 'tomtom', total: 2, items: [
